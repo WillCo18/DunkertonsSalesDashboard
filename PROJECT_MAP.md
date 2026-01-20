@@ -519,15 +519,252 @@ Advanced query that:
 
 ---
 
+## 🎯 Feature: Multi-Month Date Range Picker (2026-01-20)
+
+### Overview
+Implemented a comprehensive multi-month date range selection system, replacing the single-month dropdown with an interactive checkbox-based UI. This allows users to aggregate and analyze data across multiple months simultaneously.
+
+### Implementation Details
+
+#### UI Changes
+**File**: `dashboard/src/components/layout/Sidebar.tsx`
+- Replaced single-select dropdown with checkbox list
+- Added "Select All" and "Clear" buttons for bulk selection
+- Month count indicator shows number of selected months
+- Scrollable list with hover effects
+- Visual feedback for selected months
+
+#### Type System Updates
+**File**: `dashboard/src/types/index.ts`
+- Changed `FilterState.reportMonth` from `string | null` to `string[]`
+- Supports empty array (all months), single month, or multiple months
+
+#### State Management
+**File**: `dashboard/src/hooks/useFilters.ts`
+- Default `reportMonth` set to `[]` (all months)
+- `resetFilters` function updated to use array format
+- Filter state properly syncs with URL parameters
+
+#### Query Layer Updates
+**File**: `dashboard/src/lib/queries.ts`
+
+Updated all month-based queries to support arrays:
+- `getMonthlySummary()` - Aggregates across selected months using `.in()`
+- `getPreviousMonthSummary()` - Returns null for multi-month (delta not meaningful)
+- `getTopCustomers()` - Multi-month aggregation
+- `getTopProducts()` - Multi-month aggregation
+- `getFormatMix()` - Multi-month aggregation
+- `getMonthlyBreakdown()` - Accepts string or array, aggregates by brand
+- `getEnhancedGapAnalysis()` - Multi-month support
+- `getCrossProductGapAnalysis()` - Multi-month support
+- `getRawShipments()` - Multi-month filtering
+
+#### Data Hook Updates
+**File**: `dashboard/src/hooks/useDashboardData.ts`
+- Conditional rendering for single-month-only widgets
+- "New Customers" and "Monthly Breakdown" only shown for single month
+- `currentMonth` metadata reflects selection (e.g., "3 months selected")
+
+### Features Affected
+
+#### ✅ Multi-Month Support
+- **KPI Cards**: Aggregate totals, units, customers across months
+- **Top Customers**: Combined volume across selected period
+- **Top Products**: Combined sales across selected period
+- **Brand Distribution**: Aggregated by brand family
+- **Format Mix**: Aggregated by pack format
+- **Gap Analysis**: Analyzes across selected months
+- **Cross-Product Gap**: Identifies opportunities across period
+- **Raw Data Table**: Filters to selected months
+
+#### 🔒 Single-Month Only
+- **New Customers**: Requires single month for accurate identification
+- **Returning Customers**: Requires single month for 3-month lookback
+- **Delta Calculations**: Previous month comparison only for single month
+
+### User Experience
+
+**Selection Modes**:
+1. **No months selected** (`[]`) - Shows all available data
+2. **Single month** - Full feature set including deltas and new customers
+3. **Multiple months** - Aggregated view, delta/new customer widgets hidden
+
+**Visual Feedback**:
+- Selected months highlighted with accent color
+- Count badge shows number of selections
+- Clear indication when all months selected
+
+### Technical Implementation
+
+**Query Pattern**:
+```typescript
+// Before (single month)
+.eq('report_month', month)
+
+// After (multi-month)
+if (months.length > 0) {
+  query = query.in('report_month', months)
+}
+```
+
+**Aggregation Logic**:
+- Sum quantities across all selected months
+- Count unique customers across period
+- Maintain product/customer relationships
+- Proper handling of empty arrays (all data)
+
+### Impact
+- ✅ Flexible date range analysis
+- ✅ Quarter/year-to-date views possible
+- ✅ Compare non-contiguous periods
+- ✅ Better trend identification
+- ✅ All existing features work seamlessly
+- ✅ Backward compatible with single-month selection
+
+---
+
+## 👥 Feature: New & Returning Customers Widget (2026-01-20)
+
+### Overview
+Completely rewrote customer acquisition tracking to properly identify truly new customers and added a new "Returning Customers" category. The widget now uses tabs to switch between new and returning customers.
+
+### Problem Solved
+**Original Issue**: The `v_new_customers` view was incorrectly identifying customers as "new" when they had ordered in previous months. For example, "Spar at Twyning" showed as new in December despite ordering in November.
+
+**Root Cause**: The view relied on `dim_customer.first_seen` which was not accurately maintained during data imports.
+
+### Implementation Details
+
+#### New Customer Logic (Fixed)
+**File**: `dashboard/src/lib/queries.ts` - `getNewCustomers()`
+
+**Algorithm**:
+1. Get all customers who ordered in the target month
+2. Check if ANY of them ordered in ANY previous month
+3. Filter to only those with NO previous orders
+4. These are truly first-time customers
+
+**Query Pattern**:
+```typescript
+// Step 1: Current month customers
+const currentMonthCustomers = await supabase
+  .from('fact_shipments')
+  .select('del_account, quantity')
+  .eq('report_month', month)
+
+// Step 2: Check for previous orders
+const previousOrders = await supabase
+  .from('fact_shipments')
+  .select('del_account')
+  .in('del_account', currentMonthAccounts)
+  .lt('report_month', month)
+
+// Step 3: Filter to truly new
+const newCustomers = accounts.filter(acc => !previousAccounts.has(acc))
+```
+
+#### Returning Customer Logic (New)
+**File**: `dashboard/src/lib/queries.ts` - `getReturningCustomers()`
+
+**Definition**: Customers who:
+- Ordered THIS month
+- Did NOT order in the last 3 months
+- DID order before that (confirming they're returning, not new)
+
+**Algorithm**:
+1. Get customers who ordered this month
+2. Calculate 3-month lookback window
+3. Exclude customers who ordered in last 3 months
+4. Verify they ordered before the 3-month window
+5. Calculate months since last order
+
+**Use Case**: Identify customers who went dormant and are now re-engaging
+
+#### "New Last 2 Months" Widget (Fixed)
+**File**: `dashboard/src/lib/queries.ts` - `getNewCustomersRecent()`
+
+**Changes**:
+- Now respects selected month filter
+- Looks back N months from selected month (not always latest)
+- Uses same proper logic as `getNewCustomers()`
+- Properly excludes customers with orders before the window
+
+**Example**: When December is selected, shows new customers from November-December who never ordered before November.
+
+#### UI Component Updates
+**File**: `dashboard/src/components/insights/NewCustomersList.tsx`
+
+**New Features**:
+- **Tab Interface**: Switch between "New" and "Returning"
+- **Count Badges**: Show number in each category
+- **Color Coding**: Green for new, blue for returning
+- **Icons**: 🎉 for new, 🔄 for returning
+- **Descriptions**: Clear explanation of each category
+- **Additional Info**: For returning customers, shows last order date and months elapsed
+
+**Tab Design**:
+```
+┌─────────────┬─────────────┐
+│ 🎉 New (5)  │ 🔄 Returning (3) │
+└─────────────┴─────────────┘
+```
+
+### Data Flow
+
+1. **Query Layer**: `getNewCustomers()`, `getReturningCustomers()`, `getNewCustomersRecent()`
+2. **Hook Layer**: `useDashboardData()` fetches both datasets (single-month only)
+3. **Component Layer**: `NewCustomersList` displays with tabs
+4. **Page Layer**: Passes both datasets to component
+
+### Validation
+
+**Test Cases**:
+- ✅ Customer ordering for first time shows as "New"
+- ✅ Customer ordering in consecutive months NOT shown as new
+- ✅ Customer returning after 3+ months shows as "Returning"
+- ✅ Customer returning after 2 months does NOT show as returning
+- ✅ "New Last 2 Months" respects month filter
+- ✅ Customers with orders before window excluded
+
+**Example Scenarios**:
+- "Spar at Twyning" ordered Nov + Dec → NOT new in December ✅
+- "Gine and Juice" ordered Sept, then Dec → Shows as Returning in December ✅
+- First-time buyer in December → Shows as New in December ✅
+
+### Impact
+- ✅ Accurate new customer identification
+- ✅ Re-engagement tracking with returning customers
+- ✅ Better campaign targeting
+- ✅ Proper customer lifecycle visibility
+- ✅ Month filter respected across all customer widgets
+- ✅ Clear visual distinction between new and returning
+
+### Future Enhancements
+- Export functionality for both lists
+- Email campaign integration
+- Automated welcome/win-back campaigns
+- Customer lifetime value tracking
+
+---
+
 ## Roadmap & Future Features
 
-### Immediate Priorities (In Progress)
-1. **Multi-Month Date Range Picker** 🚧
-   - Replace single month dropdown with checkbox-based multi-select
-   - Allow selection of multiple months (e.g., December + November + October)
-   - Aggregate data across selected months
-   - Update all KPIs, charts, and widgets to handle multi-month data
-   - Show selected months in filter summary
+### ✅ Recently Completed
+1. **Multi-Month Date Range Picker** ✅ (Completed 2026-01-20)
+   - ✅ Replaced single month dropdown with checkbox-based multi-select
+   - ✅ Allow selection of multiple months (e.g., December + November + October)
+   - ✅ Aggregate data across selected months
+   - ✅ Updated all KPIs, charts, and widgets to handle multi-month data
+   - ✅ Show selected months count in filter UI
+   - ✅ Fixed all query functions to support month arrays
+   - ✅ Conditional rendering for single-month-only features
+
+2. **New & Returning Customers Tracking** ✅ (Completed 2026-01-20)
+   - ✅ Fixed new customer identification logic
+   - ✅ Added returning customers category (3+ month dormancy)
+   - ✅ Tab interface to switch between new and returning
+   - ✅ Proper order history validation
+   - ✅ "New Last 2 Months" respects month filter
 
 ### Short-Term Features (Next Sprint)
 2. **Export Functionality for Gap Analysis**
