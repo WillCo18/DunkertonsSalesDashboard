@@ -1,0 +1,11 @@
+distributor,source_sku,internal_product_code,mapping_method,mapping_confidence,mapping_note
+Inn Express,PDPR500,FPPER50,manual_override,1.00,Seeded from Airtable - Perry
+Inn Express,PDBR500,FPBRO50,manual_override,1.00,Seeded from Airtable - Browns (NOTE: Duplicate SKU also used for FPBF050 and FPBFCAN33)
+Inn Express,PDCPR330,FPPREMCAN33,manual_override,1.00,Seeded from Airtable - Premium Can
+Inn Express,PDVN500,FPVIN66,manual_override,1.00,Seeded from Airtable - Vintage
+Inn Express,PDDRYSPARK,FPCRAFT50,manual_override,1.00,Seeded from Airtable - Craft (NOTE: Duplicate SKU also used for FPDRY50)
+Inn Express,CDBFBIB,FPBIBBF20L,manual_override,1.00,Seeded from Airtable - Black Fox BIB
+Inn Express,PDUNBSD500,FPBWS50,manual_override,1.00,Seeded from Airtable - Breakwells Seedling
+Inn Express,KDUCR50,FPKEG505,manual_override,1.00,Seeded from Airtable - Craft Keg 50L
+Inn Express,KDUBF50,FPKEG50BF,manual_override,1.00,Seeded from Airtable - Black Fox Keg 50L
+Inn Express,PDPC6.8500ML,FPPREM50,manual_override,1.00,Seeded from Airtable - Premium Bottle

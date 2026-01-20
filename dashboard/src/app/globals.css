@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #1D1D1D;
+    --foreground: #EEEEEE;
+    --surface: #2A2A2A;
+    --border: rgba(238, 238, 238, 0.10);
+    --accent: #44D1B8;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+
+  /* Common UI Elements */
+  .card {
+    @apply bg-surface rounded-lg border border-border p-6 shadow-card;
+  }
+
+  .card-header {
+    @apply text-sm font-semibold text-foreground-secondary uppercase tracking-wider mb-4;
+  }
+
+  .kpi-tile {
+    @apply bg-surface rounded-lg p-6 border border-border flex flex-col transition-all;
+  }
+
+  .kpi-tile:hover {
+    @apply border-accent/30 shadow-glow-sm;
+  }
+
+  .kpi-value {
+    @apply text-kpi font-mono text-foreground;
+  }
+
+  .kpi-label {
+    @apply text-kpi-label uppercase text-foreground-muted tracking-wider;
+  }
+
+  /* Data Table */
+  .data-table-container {
+    @apply w-full overflow-x-auto;
+  }
+
+  .data-table {
+    @apply w-full border-collapse;
+  }
+
+  .data-table th {
+    @apply text-left py-3 px-4 bg-surface-elevated text-xs font-semibold text-foreground-muted uppercase tracking-wider border-b border-border;
+  }
+
+  .data-table td {
+    @apply py-3 px-4 text-sm border-b border-border text-foreground-secondary;
+  }
+
+  .data-table tr:hover td {
+    @apply bg-surface-elevated text-foreground transition-colors;
+  }
+
+  /* Sidebar */
+  .sidebar-section-label {
+    @apply text-xs font-bold text-foreground-muted uppercase tracking-widest block mb-3 mt-2;
+  }
+
+  /* Components specific scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-surface;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-surface-elevated rounded-full;
+  }
+}

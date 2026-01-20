@@ -1,0 +1,27 @@
+product_code,product_name,brand_family,pack_format,duoi,category,is_active
+FPKINBL050,Dunkertons Kingston Black,Kingston Black,Bottle 500ml,500ml x 12,bottle500,true
+FPDAB50,Dunkertons DABINETT CIDER Bottles,Dabinett,Bottle 500ml,500ml x 12,bottle500,true
+FPPER50,Dunkertons PERRY Cider Bottles,Perry,Bottle 500ml,500ml x 12,bottle500,true
+FPBRO50,Dunkertons BROWNS CIDER Bottles,Browns,Bottle 500ml,500ml x 12,bottle500,true
+FPMULL3L,Organic Mulled Cider 3 Litre,Mulled,BIB 3L,3 Ltr BIB,bib3,true
+FPPREMCAN33,Dunkertons PREMIUM Cider Cans,Premium,Can 330ml,330ml x 12,can330,true
+FPVIN66,Dunkertons VINTAGE CIDER Bottles,Vintage,Bottle 660ml,660ml x 12,bottle660,true
+FPCRAFT50,Dunkertons CRAFT Cider 5% Bottles,Craft,Bottle 500ml,500ml x 12,bottle500,true
+FPDRYBIB,Dunkertons DRY ORGANIC Cider BIB,Dry,BIB 20L,20 Ltr BIB,bib20,true
+FPSES50,Organic Session Cider 50cl x 12,Session,Bottle 500ml,500ml x 12,bottle500,true
+FPGIFT3B,Dunkertons 3 Bottle Gift Box,Gifting,Gift Box,3 x 500ml Gift box,giftbox,true
+FPPREM50,Dunkertons PREMIUM Cider Bottles,Premium,Bottle 500ml,500ml x 12,bottle500,true
+FPCRAFT30,Dunkertons CRAFT Cider 5% Cans,Craft,Can 330ml,330ml x 12,can330,true
+FPBIBBF20L,Dunkertons BLACK FOX ORGANIC Cider BIB,Black Fox,BIB 20L,20 Ltr BIB,bib20,true
+FPBWS50,Dunkertons BREAKWELLS Seedling CIDER,Breakwell,Bottle 500ml,500ml x 12,bottle500,true
+FPBF050,Dunkertons BLACK FOX CIDER Bottles 7%,Black Fox,Bottle 500ml,500ml x 12,bottle500,true
+FPKEG505,Dunkertons CRAFT Cider 50L ** Keg ** 5%,Craft,Keg 50L,50 Ltr Keg,keg50,true
+FPMULLED,Organic Mulled Cider BiB 10L,Mulled,BIB 10L,10 Ltr BIB,bib10,true
+FPMCCOOP,Orchard Bliss,Orchard Bliss,Bottle 500ml,500ml x 12,bottle500,true
+FPMINICRAFT,5L Black Fox Organic Cider Mini Keg,Craft,Mini Keg 5L,5L x 1,minikeg5,true
+FPDRY50,Dunkertons DRY SPARKLING cider bottles 7%,Dry,Bottle 500ml,500ml x 12,bottle500,true
+FPKEG50BF,Dunkertons BLACK FOX Cider 50L Keg 6%,Black Fox,Keg 50L,50 Ltr Keg,keg50,true
+FPGIFT4B,Dunkertons 4 Bottle Gift Box,Gifting,Gift Box,34x 500ml Gift box,giftbox,true
+FPBFCAN33,Dunkertons BLACK FOX Cider 7% Cans,Black Fox,Can 330ml,330ml x 12,can330,true
+FPMINIBLACKF,5L Black Fox Organic Cider Mini Keg,Black Fox,Mini Keg 5L,5L x 1,minikeg5,true
+FPKEGSESS,Organic Session Cider keg 50L,Session,Keg 50L,50 Ltr Keg,keg50,true

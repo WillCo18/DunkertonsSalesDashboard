@@ -1,0 +1,16 @@
+# Dunkerton Sales Dashboard - Python Dependencies
+
+# Database
+supabase>=2.0.0
+
+# Data processing
+pandas>=2.0.0
+openpyxl>=3.1.0  # Excel file support
+
+# Environment
+python-dotenv>=1.0.0
+
+# Development
+pytest>=7.0.0
+black>=23.0.0
+mypy>=1.0.0
