@@ -127,7 +127,7 @@ export interface GapAnalysisBrand {
 
 // Dashboard filter state
 export interface FilterState {
-  reportMonth: string | null
+  reportMonth: string[] // Changed from string | null to string[] for multi-month support
   brandFamily: string[]
   packFormat: string[]
   salesperson: string[]

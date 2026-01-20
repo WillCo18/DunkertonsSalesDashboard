@@ -48,20 +48,61 @@ export function Sidebar({
       <div className="flex-1 overflow-y-auto">
         {/* Period Filter */}
         <div className="p-4 border-b border-border">
-          <label className="text-xs font-semibold text-foreground-muted uppercase tracking-wider block mb-2">
-            Period
-          </label>
-          <select
-            value={filters.reportMonth || ''}
-            onChange={(e) => setFilter('reportMonth', e.target.value || null)}
-            className="w-full bg-surface-elevated border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-          >
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-semibold text-foreground-muted uppercase tracking-wider">
+              Period
+            </label>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setFilter('reportMonth', availableMonths)}
+                className="text-xs text-accent hover:text-accent/80 transition-colors"
+                title="Select all months"
+              >
+                All
+              </button>
+              <span className="text-foreground-muted">|</span>
+              <button
+                onClick={() => setFilter('reportMonth', [])}
+                className="text-xs text-foreground-muted hover:text-foreground transition-colors"
+                title="Clear selection"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          {/* Month count indicator */}
+          {filters.reportMonth.length > 0 && (
+            <div className="mb-2 text-xs text-accent">
+              {filters.reportMonth.length} month{filters.reportMonth.length !== 1 ? 's' : ''} selected
+            </div>
+          )}
+
+          {/* Scrollable month list */}
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
             {availableMonths.map((month) => (
-              <option key={month} value={month}>
-                {formatMonth(month)}
-              </option>
+              <label
+                key={month}
+                className="flex items-center gap-2 cursor-pointer group"
+              >
+                <input
+                  type="checkbox"
+                  checked={filters.reportMonth.includes(month)}
+                  onChange={() => {
+                    const current = filters.reportMonth
+                    const newValue = current.includes(month)
+                      ? current.filter((m) => m !== month)
+                      : [...current, month]
+                    setFilter('reportMonth', newValue)
+                  }}
+                  className="w-4 h-4 rounded border-border bg-surface-elevated text-accent focus:ring-2 focus:ring-accent focus:ring-offset-0"
+                />
+                <span className="text-sm text-foreground group-hover:text-accent transition-colors">
+                  {formatMonth(month)}
+                </span>
+              </label>
             ))}
-          </select>
+          </div>
         </div>
 
         {/* Brand Family Filter */}

@@ -33,7 +33,7 @@ export async function getAvailableMonths(): Promise<string[]> {
 export async function getMonthlySummary(
   filters: Partial<FilterState>
 ): Promise<MonthlySummary | null> {
-  const month = filters.reportMonth
+  const months = filters.reportMonth || []
 
   // If we have filters (beyond just month), we calculate from fact_shipments directly
   // to ensure reactivity (pivoting)
@@ -43,7 +43,7 @@ export async function getMonthlySummary(
     filters.customer !== null ||
     (filters.packFormat && filters.packFormat.length > 0)
 
-  if (hasExtraFilters) {
+  if (hasExtraFilters || months.length > 0) {
     // If filtering by pack format, first get the product codes from dim_product_internal
     let productCodes: string[] | null = null
     if (filters.packFormat?.length) {
@@ -61,7 +61,10 @@ export async function getMonthlySummary(
       .from('fact_shipments')
       .select('del_account, source_sku, internal_product_code, quantity, salesperson, detected_family, detected_format')
 
-    if (month) query = query.eq('report_month', month)
+    // Multi-month support: use .in() if months selected, otherwise get all
+    if (months.length > 0) {
+      query = query.in('report_month', months)
+    }
 
     if (filters.brandFamily?.length) {
       query = query.in('detected_family', filters.brandFamily)
@@ -90,8 +93,15 @@ export async function getMonthlySummary(
     const mappedUnits = data.filter(d => d.internal_product_code).reduce((sum, d) => sum + Number(d.quantity), 0)
     const mappingCoverage = totalUnits > 0 ? (mappedUnits / totalUnits) * 100 : 0
 
+    // Format month display
+    const monthDisplay = months.length === 0
+      ? 'All Months'
+      : months.length === 1
+        ? months[0]
+        : `${months.length} Months Selected`
+
     return {
-      report_month: month || 'Filter Active',
+      report_month: monthDisplay,
       active_customers: uniqueCustomers,
       unique_skus: uniqueSkus,
       unique_internal_products: uniqueInternal,
@@ -102,84 +112,332 @@ export async function getMonthlySummary(
   }
 
   // Otherwise use the pre-calculated view for performance/default state
-  let query = supabase
-    .from('v_monthly_summary')
-    .select('*')
+  // When no months selected, aggregate all months
+  if (months.length === 0) {
+    // Get all-time aggregate
+    const { data, error } = await supabase
+      .from('fact_shipments')
+      .select('del_account, source_sku, internal_product_code, quantity')
 
-  if (month) {
-    query = query.eq('report_month', month)
-  } else {
-    query = query.order('report_month', { ascending: false }).limit(1)
+    if (error) throw error
+    if (!data || data.length === 0) return null
+
+    const uniqueCustomers = new Set(data.map(d => d.del_account)).size
+    const uniqueSkus = new Set(data.map(d => d.source_sku)).size
+    const uniqueInternal = new Set(data.filter(d => d.internal_product_code).map(d => d.internal_product_code)).size
+    const totalUnits = data.reduce((sum, d) => sum + Number(d.quantity), 0)
+    const mappedUnits = data.filter(d => d.internal_product_code).reduce((sum, d) => sum + Number(d.quantity), 0)
+    const mappingCoverage = totalUnits > 0 ? (mappedUnits / totalUnits) * 100 : 0
+
+    return {
+      report_month: 'All Months',
+      active_customers: uniqueCustomers,
+      unique_skus: uniqueSkus,
+      unique_internal_products: uniqueInternal,
+      total_units: totalUnits,
+      mapped_units: mappedUnits,
+      mapping_coverage_pct: Number(mappingCoverage.toFixed(2))
+    }
   }
 
-  const { data, error } = await query.maybeSingle()
+  // Single or multiple months selected - aggregate them
+  const { data, error } = await supabase
+    .from('fact_shipments')
+    .select('del_account, source_sku, internal_product_code, quantity')
+    .in('report_month', months)
 
   if (error) throw error
-  return data
+  if (!data || data.length === 0) return null
+
+  const uniqueCustomers = new Set(data.map(d => d.del_account)).size
+  const uniqueSkus = new Set(data.map(d => d.source_sku)).size
+  const uniqueInternal = new Set(data.filter(d => d.internal_product_code).map(d => d.internal_product_code)).size
+  const totalUnits = data.reduce((sum, d) => sum + Number(d.quantity), 0)
+  const mappedUnits = data.filter(d => d.internal_product_code).reduce((sum, d) => sum + Number(d.quantity), 0)
+  const mappingCoverage = totalUnits > 0 ? (mappedUnits / totalUnits) * 100 : 0
+
+  const monthDisplay = months.length === 1 ? months[0] : `${months.length} Months Selected`
+
+  return {
+    report_month: monthDisplay,
+    active_customers: uniqueCustomers,
+    unique_skus: uniqueSkus,
+    unique_internal_products: uniqueInternal,
+    total_units: totalUnits,
+    mapped_units: mappedUnits,
+    mapping_coverage_pct: Number(mappingCoverage.toFixed(2))
+  }
 }
 
 // Get previous month summary for delta calculations
+// Note: Delta calculations only work for single-month selections
 export async function getPreviousMonthSummary(
   filters: Partial<FilterState>
 ): Promise<MonthlySummary | null> {
-  if (!filters.reportMonth) return null
+  const months = filters.reportMonth || []
 
-  const currentDate = new Date(filters.reportMonth)
+  // Only calculate delta for single month selection
+  if (months.length !== 1) return null
+
+  const currentDate = new Date(months[0])
   currentDate.setMonth(currentDate.getMonth() - 1)
   const prevMonth = currentDate.toISOString().slice(0, 10)
 
-  return getMonthlySummary({ ...filters, reportMonth: prevMonth })
+  return getMonthlySummary({ ...filters, reportMonth: [prevMonth] })
 }
 
 // Get new customers for a specific month
+// Get new customers for a specific month
+// New = ordered in this month AND never ordered before
 export async function getNewCustomers(
-  month?: string,
+  month: string,
   limit = 100
 ): Promise<NewCustomer[]> {
-  let query = supabase
-    .from('v_new_customers')
-    .select('*')
-    .order('first_month_units', { ascending: false })
-    .limit(limit)
+  // Step 1: Get all customers who ordered THIS month
+  const { data: currentMonthCustomers } = await supabase
+    .from('fact_shipments')
+    .select('del_account, quantity')
+    .eq('report_month', month)
 
-  if (month) {
-    query = query.eq('first_order_month', month)
+  if (!currentMonthCustomers || currentMonthCustomers.length === 0) return []
+
+  // Aggregate units for current month
+  const currentMonthUnits: Record<string, number> = {}
+  for (const row of currentMonthCustomers) {
+    currentMonthUnits[row.del_account] = (currentMonthUnits[row.del_account] || 0) + row.quantity
   }
 
-  const { data, error } = await query
+  const currentMonthAccounts = Object.keys(currentMonthUnits)
 
-  if (error) throw error
-  return data || []
+  // Step 2: Check which of these customers ordered in ANY previous month
+  const { data: previousOrders } = await supabase
+    .from('fact_shipments')
+    .select('del_account')
+    .in('del_account', currentMonthAccounts)
+    .lt('report_month', month)
+
+  const previousCustomerAccounts = new Set(previousOrders?.map(r => r.del_account) || [])
+
+  // Step 3: Filter to only customers who have NO previous orders (truly new)
+  const newCustomerAccounts = currentMonthAccounts.filter(acc => !previousCustomerAccounts.has(acc))
+
+  if (newCustomerAccounts.length === 0) return []
+
+  // Step 4: Get customer details
+  const { data: customers } = await supabase
+    .from('dim_customer')
+    .select('del_account, customer_name, delivery_city, delivery_postcode')
+    .in('del_account', newCustomerAccounts)
+
+  // Build result
+  const result: NewCustomer[] = (customers || []).map(customer => ({
+    del_account: customer.del_account,
+    customer_name: customer.customer_name,
+    delivery_city: customer.delivery_city,
+    delivery_postcode: customer.delivery_postcode,
+    first_order_month: month,
+    first_month_units: currentMonthUnits[customer.del_account]
+  }))
+
+  return result
+    .sort((a, b) => b.first_month_units - a.first_month_units)
+    .slice(0, limit)
 }
 
-// Get new customers from last N months
+// Get new customers from last N months (relative to selected month or latest month)
 export async function getNewCustomersRecent(
   months: number = 2,
-  limit = 100
+  limit = 100,
+  currentMonth?: string
 ): Promise<NewCustomer[]> {
-  // Get the most recent month in data
-  const { data: monthsData } = await supabase
-    .from('fact_shipments')
-    .select('report_month')
-    .order('report_month', { ascending: false })
-    .limit(1)
+  // Determine the reference month (selected month or latest month in data)
+  let referenceMonth: string
 
-  if (!monthsData || monthsData.length === 0) return []
+  if (currentMonth) {
+    referenceMonth = currentMonth
+  } else {
+    const { data: monthsData } = await supabase
+      .from('fact_shipments')
+      .select('report_month')
+      .order('report_month', { ascending: false })
+      .limit(1)
 
-  const latestMonth = new Date(monthsData[0].report_month)
-  const cutoffDate = new Date(latestMonth)
-  cutoffDate.setMonth(cutoffDate.getMonth() - months)
+    if (!monthsData || monthsData.length === 0) return []
+    referenceMonth = monthsData[0].report_month
+  }
+
+  // Calculate the cutoff date (N months before reference month)
+  const referenceDate = new Date(referenceMonth)
+  const cutoffDate = new Date(referenceDate)
+  cutoffDate.setMonth(cutoffDate.getMonth() - months + 1) // +1 to include the current month
   const cutoff = cutoffDate.toISOString().slice(0, 10)
 
-  const { data, error } = await supabase
-    .from('v_new_customers')
-    .select('*')
-    .gte('first_order_month', cutoff)
-    .order('first_month_units', { ascending: false })
-    .limit(limit)
+  // Get all customers who ordered in the last N months (including reference month)
+  const { data: recentCustomers } = await supabase
+    .from('fact_shipments')
+    .select('del_account, report_month, quantity')
+    .gte('report_month', cutoff)
+    .lte('report_month', referenceMonth)
 
-  if (error) throw error
-  return data || []
+  if (!recentCustomers || recentCustomers.length === 0) return []
+
+  // Group by customer and find their first order month in this period
+  const customerFirstOrders: Record<string, { firstMonth: string; units: number }> = {}
+
+  for (const row of recentCustomers) {
+    if (!customerFirstOrders[row.del_account]) {
+      customerFirstOrders[row.del_account] = {
+        firstMonth: row.report_month,
+        units: 0
+      }
+    }
+    // Track earliest month
+    if (row.report_month < customerFirstOrders[row.del_account].firstMonth) {
+      customerFirstOrders[row.del_account].firstMonth = row.report_month
+    }
+    // Sum units from first month only
+    if (row.report_month === customerFirstOrders[row.del_account].firstMonth) {
+      customerFirstOrders[row.del_account].units += row.quantity
+    }
+  }
+
+  const customerAccounts = Object.keys(customerFirstOrders)
+
+  // Check which customers ordered BEFORE the cutoff (not truly new)
+  const { data: previousOrders } = await supabase
+    .from('fact_shipments')
+    .select('del_account')
+    .in('del_account', customerAccounts)
+    .lt('report_month', cutoff)
+
+  const previousCustomerAccounts = new Set(previousOrders?.map(r => r.del_account) || [])
+
+  // Filter to only truly new customers (no orders before cutoff)
+  const newCustomerAccounts = customerAccounts.filter(acc => !previousCustomerAccounts.has(acc))
+
+  if (newCustomerAccounts.length === 0) return []
+
+  // Get customer details
+  const { data: customers } = await supabase
+    .from('dim_customer')
+    .select('del_account, customer_name, delivery_city, delivery_postcode')
+    .in('del_account', newCustomerAccounts)
+
+  // Build result
+  const result: NewCustomer[] = (customers || []).map(customer => ({
+    del_account: customer.del_account,
+    customer_name: customer.customer_name,
+    delivery_city: customer.delivery_city,
+    delivery_postcode: customer.delivery_postcode,
+    first_order_month: customerFirstOrders[customer.del_account].firstMonth,
+    first_month_units: customerFirstOrders[customer.del_account].units
+  }))
+
+  return result
+    .sort((a, b) => b.first_month_units - a.first_month_units)
+    .slice(0, limit)
+}
+
+// Get returning customers for a specific month
+// Returning = ordered this month, but NOT in last 3 months, but DID order before that
+export async function getReturningCustomers(
+  month: string,
+  limit = 100
+): Promise<Array<{
+  del_account: string
+  customer_name: string
+  delivery_city: string | null
+  delivery_postcode: string | null
+  current_month_units: number
+  last_order_month: string
+  months_since_last_order: number
+}>> {
+  // Calculate the 3-month lookback window
+  const currentDate = new Date(month)
+  const threeMonthsAgo = new Date(currentDate)
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
+  const lookbackStart = threeMonthsAgo.toISOString().slice(0, 10)
+
+  // Step 1: Get customers who ordered THIS month
+  const { data: currentMonthCustomers } = await supabase
+    .from('fact_shipments')
+    .select('del_account, quantity')
+    .eq('report_month', month)
+
+  if (!currentMonthCustomers || currentMonthCustomers.length === 0) return []
+
+  // Aggregate units for current month
+  const currentMonthUnits: Record<string, number> = {}
+  for (const row of currentMonthCustomers) {
+    currentMonthUnits[row.del_account] = (currentMonthUnits[row.del_account] || 0) + row.quantity
+  }
+
+  const currentMonthAccounts = Object.keys(currentMonthUnits)
+
+  // Step 2: Get customers who ordered in the LAST 3 MONTHS (excluding current month)
+  const { data: recentCustomers } = await supabase
+    .from('fact_shipments')
+    .select('del_account')
+    .in('del_account', currentMonthAccounts)
+    .gte('report_month', lookbackStart)
+    .lt('report_month', month)
+
+  const recentAccounts = new Set(recentCustomers?.map(r => r.del_account) || [])
+
+  // Step 3: Filter to customers who ordered THIS month but NOT in last 3 months
+  const potentialReturningAccounts = currentMonthAccounts.filter(acc => !recentAccounts.has(acc))
+
+  if (potentialReturningAccounts.length === 0) return []
+
+  // Step 4: Get their order history to find last order date and confirm they ordered BEFORE the 3-month window
+  const { data: orderHistory } = await supabase
+    .from('fact_shipments')
+    .select('del_account, report_month')
+    .in('del_account', potentialReturningAccounts)
+    .lt('report_month', lookbackStart)
+    .order('report_month', { ascending: false })
+
+  // Group by account to find last order before the 3-month window
+  const lastOrders: Record<string, string> = {}
+  for (const row of orderHistory || []) {
+    if (!lastOrders[row.del_account]) {
+      lastOrders[row.del_account] = row.report_month
+    }
+  }
+
+  // Filter to only accounts that have a previous order (true returning customers)
+  const returningAccounts = potentialReturningAccounts.filter(acc => lastOrders[acc])
+
+  if (returningAccounts.length === 0) return []
+
+  // Step 5: Get customer details
+  const { data: customers } = await supabase
+    .from('dim_customer')
+    .select('del_account, customer_name, delivery_city, delivery_postcode')
+    .in('del_account', returningAccounts)
+
+  // Build result
+  const result = (customers || []).map(customer => {
+    const lastOrderMonth = lastOrders[customer.del_account]
+    const lastOrderDate = new Date(lastOrderMonth)
+    const currentMonthDate = new Date(month)
+    const monthsDiff = (currentMonthDate.getFullYear() - lastOrderDate.getFullYear()) * 12 +
+      (currentMonthDate.getMonth() - lastOrderDate.getMonth())
+
+    return {
+      del_account: customer.del_account,
+      customer_name: customer.customer_name,
+      delivery_city: customer.delivery_city,
+      delivery_postcode: customer.delivery_postcode,
+      current_month_units: currentMonthUnits[customer.del_account],
+      last_order_month: lastOrderMonth,
+      months_since_last_order: monthsDiff
+    }
+  })
+
+  return result
+    .sort((a, b) => b.current_month_units - a.current_month_units)
+    .slice(0, limit)
 }
 
 // Get at-risk customers
@@ -212,7 +470,7 @@ export async function getTopCustomers(
       .from('fact_shipments')
       .select('del_account, customer_name, delivery_city, delivery_postcode, quantity, detected_family, detected_format, salesperson, internal_product_code')
 
-    if (filters?.reportMonth) query = query.eq('report_month', filters.reportMonth)
+    if (filters?.reportMonth && filters.reportMonth.length > 0) query = query.in('report_month', filters.reportMonth)
 
     // For brand/format, we should filter by internal_product_code if available to match the "Truth" 
     // from dim_product_internal, especially since detected_family might be inaccurate for Mulled etc.
@@ -259,8 +517,8 @@ export async function getTopCustomers(
           total_units: 0,
           months_active: 1, // Approximation for dynamic view
           avg_units_per_order: 0,
-          last_order_month: filters?.reportMonth || '-',
-          first_order_month: filters?.reportMonth || '-'
+          last_order_month: filters?.reportMonth && filters.reportMonth.length > 0 ? filters.reportMonth[filters.reportMonth.length - 1] : '-',
+          first_order_month: filters?.reportMonth && filters.reportMonth.length > 0 ? filters.reportMonth[0] : '-'
         }
       }
       agg[row.del_account].total_units += Number(row.quantity)
@@ -292,7 +550,7 @@ export async function getTopProducts(
     let query = supabase
       .from('fact_shipments')
       .select('internal_product_code, source_description, detected_family, detected_format, quantity')
-      .eq('report_month', filters.reportMonth)
+      .in('report_month', filters.reportMonth)
       .not('internal_product_code', 'is', null)
 
     if (filters?.brandFamily?.length) query = query.in('detected_family', filters.brandFamily)
@@ -368,8 +626,8 @@ export async function getFormatMix(
     .select('detected_format, quantity')
     .not('detected_format', 'is', null)
 
-  if (filters?.reportMonth) {
-    query = query.eq('report_month', filters.reportMonth)
+  if (filters?.reportMonth && filters.reportMonth.length > 0) {
+    query = query.in('report_month', filters.reportMonth)
   }
 
   if (filters?.brandFamily?.length) {
@@ -421,7 +679,7 @@ export async function getEnhancedGapAnalysis(params: {
   packFormat?: string
   salesperson?: string
   showStocked: boolean
-  reportMonth?: string | null
+  reportMonth?: string[] // Changed to array for multi-month support
 }): Promise<Array<{
   del_account: string
   customer_name: string
@@ -451,8 +709,8 @@ export async function getEnhancedGapAnalysis(params: {
     .from('fact_shipments')
     .select('del_account')
 
-  if (reportMonth) {
-    activeCustomersQuery = activeCustomersQuery.eq('report_month', reportMonth)
+  if (reportMonth && reportMonth.length > 0) {
+    activeCustomersQuery = activeCustomersQuery.in('report_month', reportMonth)
   }
 
   const { data: activeShipments } = await activeCustomersQuery
@@ -474,8 +732,8 @@ export async function getEnhancedGapAnalysis(params: {
     .from('fact_shipments')
     .select('del_account, salesperson, quantity, internal_product_code, detected_family, detected_format')
 
-  if (reportMonth) {
-    shipmentQuery = shipmentQuery.eq('report_month', reportMonth)
+  if (reportMonth && reportMonth.length > 0) {
+    shipmentQuery = shipmentQuery.in('report_month', reportMonth)
   }
 
   if (salesperson) {
@@ -531,8 +789,8 @@ export async function getEnhancedGapAnalysis(params: {
       .from('fact_shipments')
       .select('del_account, quantity, salesperson')
 
-    if (reportMonth) {
-      allShipmentsQuery = allShipmentsQuery.eq('report_month', reportMonth)
+    if (reportMonth && reportMonth.length > 0) {
+      allShipmentsQuery = allShipmentsQuery.in('report_month', reportMonth)
     }
 
     const { data: totalShipments } = await allShipmentsQuery
@@ -564,7 +822,7 @@ export async function getCrossProductGapAnalysis(params: {
   missingBrand: string
   missingFormat?: string
   salesperson?: string
-  reportMonth?: string | null
+  reportMonth?: string[] // Changed to array for multi-month support
 }): Promise<Array<{
   del_account: string
   customer_name: string
@@ -618,8 +876,8 @@ export async function getCrossProductGapAnalysis(params: {
     .from('fact_shipments')
     .select('del_account, salesperson, quantity, internal_product_code, detected_family, detected_format')
 
-  if (reportMonth) {
-    shipmentsQuery = shipmentsQuery.eq('report_month', reportMonth)
+  if (reportMonth && reportMonth.length > 0) {
+    shipmentsQuery = shipmentsQuery.in('report_month', reportMonth)
   }
 
   if (salesperson) {
@@ -766,11 +1024,18 @@ export async function searchCustomers(
 
 // Get aggregated data for a specific month
 // Get aggregated data for a specific month
-export async function getMonthlyBreakdown(month: string, filters: Partial<FilterState> = {}) {
+export async function getMonthlyBreakdown(months: string | string[], filters: Partial<FilterState> = {}) {
+  // Normalize to array
+  const monthArray = Array.isArray(months) ? months : [months]
+
   let query = supabase
     .from('fact_shipments')
     .select('detected_family, quantity')
-    .eq('report_month', month)
+
+  // Use .in() for array support
+  if (monthArray.length > 0) {
+    query = query.in('report_month', monthArray)
+  }
 
   if (filters.salesperson?.length) query = query.in('salesperson', filters.salesperson)
   if (filters.customer) query = query.eq('del_account', filters.customer)
@@ -798,8 +1063,8 @@ export async function getRawShipments(
 ): Promise<Shipment[]> {
   let query = supabase.from('fact_shipments').select('*')
 
-  if (filters.reportMonth) {
-    query = query.eq('report_month', filters.reportMonth)
+  if (filters.reportMonth && filters.reportMonth.length > 0) {
+    query = query.in('report_month', filters.reportMonth)
   }
 
   if (filters.brandFamily && filters.brandFamily.length > 0) {

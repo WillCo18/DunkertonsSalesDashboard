@@ -19,7 +19,7 @@ interface EnhancedGapAnalysisProps {
     availableBrands: string[]
     availableFormats: string[]
     availableSalespeople: string[]
-    currentMonth?: string
+    currentMonth?: string[] // Changed to array for multi-month support
 }
 
 export function EnhancedGapAnalysis({
@@ -43,7 +43,7 @@ export function EnhancedGapAnalysis({
             packFormat: selectedFormat || undefined,
             salesperson: selectedSalesperson || undefined,
             showStocked,
-            reportMonth: currentMonth || null
+            reportMonth: currentMonth || []
         })
     )
 
@@ -185,7 +185,7 @@ export function EnhancedGapAnalysis({
             )}
 
             {/* Results */}
-            <div className="min-h-[400px]">
+            <div>
                 {!selectedBrand ? (
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                         <div className="p-4 bg-info/10 rounded-full mb-4">

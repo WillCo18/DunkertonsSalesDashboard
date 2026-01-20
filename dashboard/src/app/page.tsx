@@ -26,6 +26,7 @@ export default function DashboardPage() {
     isLoading,
     kpiData,
     newCustomers,
+    returningCustomers,
     newCustomersRecent,
     atRiskCustomers,
     topCustomers,
@@ -135,7 +136,7 @@ export default function DashboardPage() {
             {/* Insights Row - Now with 5 widgets */}
             <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               <div id="new-customers-section">
-                <NewCustomersList data={newCustomers} loading={isLoading} />
+                <NewCustomersList data={newCustomers} returningData={returningCustomers} loading={isLoading} />
               </div>
               <NewCustomersRecentList data={newCustomersRecent} loading={isLoading} />
               <div id="at-risk-section">
@@ -163,7 +164,7 @@ export default function DashboardPage() {
                 availableBrands={filterOptions.brandFamilies}
                 availableFormats={filterOptions.packFormats}
                 availableSalespeople={filterOptions.salespeople}
-                currentMonth={currentMonth || undefined}
+                currentMonth={filters.reportMonth}
               />
             </section>
 
@@ -173,7 +174,7 @@ export default function DashboardPage() {
                 availableBrands={filterOptions.brandFamilies}
                 availableFormats={filterOptions.packFormats}
                 availableSalespeople={filterOptions.salespeople}
-                currentMonth={currentMonth || undefined}
+                currentMonth={filters.reportMonth}
               />
             </section>
           </>

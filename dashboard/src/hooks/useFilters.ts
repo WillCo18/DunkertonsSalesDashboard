@@ -6,7 +6,7 @@ import { getAvailableMonths, getFilterOptions } from '@/lib/queries'
 import type { FilterState } from '@/types'
 
 const defaultFilters: FilterState = {
-  reportMonth: null,
+  reportMonth: [], // Changed from null to [] for multi-month support
   brandFamily: [],
   packFormat: [],
   salesperson: [],
@@ -57,11 +57,8 @@ export function useFilters() {
 
   // Reset all filters
   const resetFilters = useCallback(() => {
-    setFilters({
-      ...defaultFilters,
-      reportMonth: availableMonths[0] || null,
-    })
-  }, [availableMonths])
+    setFilters(defaultFilters) // Use defaultFilters which has reportMonth as []
+  }, [])
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {

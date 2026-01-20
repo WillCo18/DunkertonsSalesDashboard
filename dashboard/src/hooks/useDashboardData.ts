@@ -5,6 +5,7 @@ import {
   getMonthlySummary,
   getPreviousMonthSummary,
   getNewCustomers,
+  getReturningCustomers,
   getNewCustomersRecent,
   getAtRiskCustomers,
   getTopCustomers,
@@ -20,7 +21,7 @@ import { calculateDelta, getBrandColor, BRAND_COLORS } from '@/lib/utils'
 import type { FilterState, KPIData, TrendDataPoint, BrandDistribution } from '@/types'
 
 export function useDashboardData(filters: FilterState) {
-  const month = filters.reportMonth
+  const months = filters.reportMonth
 
   // Current month summary
   const { data: currentSummary, isLoading: summaryLoading } = useSWR(
@@ -34,16 +35,22 @@ export function useDashboardData(filters: FilterState) {
     () => getPreviousMonthSummary(filters)
   )
 
-  // New customers this month
+  // New customers this month (only for single month selection)
   const { data: newCustomers = [], isLoading: newCustomersLoading } = useSWR(
-    month ? ['new-customers', month] : null,
-    () => getNewCustomers(month!, 20)
+    months.length === 1 ? ['new-customers', months[0]] : null,
+    () => months.length === 1 ? getNewCustomers(months[0], 20) : Promise.resolve([])
   )
 
-  // New customers in last 2 months
+  // Returning customers this month (only for single month selection)
+  const { data: returningCustomers = [], isLoading: returningCustomersLoading } = useSWR(
+    months.length === 1 ? ['returning-customers', months[0]] : null,
+    () => months.length === 1 ? getReturningCustomers(months[0], 20) : Promise.resolve([])
+  )
+
+  // New customers in last 2 months (relative to selected month or latest)
   const { data: newCustomersRecent = [], isLoading: newCustomersRecentLoading } = useSWR(
-    'new-customers-recent',
-    () => getNewCustomersRecent(2, 20)
+    months.length === 1 ? ['new-customers-recent', months[0]] : 'new-customers-recent',
+    () => getNewCustomersRecent(2, 20, months.length === 1 ? months[0] : undefined)
   )
 
   // At-risk customers
@@ -87,10 +94,10 @@ export function useDashboardData(filters: FilterState) {
     () => getGapAnalysisBrand(20)
   )
 
-  // Monthly breakdown for current month
+  // Monthly breakdown for brand distribution (works for single or multi-month)
   const { data: monthlyBreakdown = [] } = useSWR(
-    month ? ['monthly-breakdown', month, filters] : null,
-    () => getMonthlyBreakdown(month!, filters)
+    months.length > 0 ? ['monthly-breakdown', months, filters] : null,
+    () => months.length > 0 ? getMonthlyBreakdown(months, filters) : Promise.resolve([])
   )
 
   // Raw shipments data
@@ -157,6 +164,7 @@ export function useDashboardData(filters: FilterState) {
     // Loading states
     isLoading: summaryLoading,
     isNewCustomersLoading: newCustomersLoading,
+    isReturningCustomersLoading: returningCustomersLoading,
     isNewCustomersRecentLoading: newCustomersRecentLoading,
     isAtRiskLoading: atRiskLoading,
     isTopCustomersLoading: topCustomersLoading,
@@ -166,6 +174,7 @@ export function useDashboardData(filters: FilterState) {
     // Data
     kpiData,
     newCustomers,
+    returningCustomers,
     newCustomersRecent,
     atRiskCustomers,
     topCustomers,
@@ -179,7 +188,7 @@ export function useDashboardData(filters: FilterState) {
     rawShipments,
 
     // Metadata
-    currentMonth: month,
+    currentMonth: months.length === 1 ? months[0] : months.length > 0 ? `${months.length} months` : null,
     mappingCoverage: currentSummary?.mapping_coverage_pct || 0,
     isRawLoading: rawLoading,
   }
