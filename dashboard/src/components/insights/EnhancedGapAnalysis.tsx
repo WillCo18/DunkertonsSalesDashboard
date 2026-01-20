@@ -187,7 +187,7 @@ export function EnhancedGapAnalysis({
             {/* Results */}
             <div>
                 {!selectedBrand ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
                         <div className="p-4 bg-info/10 rounded-full mb-4">
                             <Package className="w-8 h-8 text-info" />
                         </div>
@@ -203,7 +203,7 @@ export function EnhancedGapAnalysis({
                         ))}
                     </div>
                 ) : filteredData.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
                         <div className="p-4 bg-surface-elevated rounded-full mb-4">
                             <UserCheck className="w-8 h-8 text-foreground-muted" />
                         </div>
