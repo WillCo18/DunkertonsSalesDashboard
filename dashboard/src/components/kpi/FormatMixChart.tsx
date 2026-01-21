@@ -96,15 +96,20 @@ export function FormatMixChart({ data, loading = false }: FormatMixChartProps) {
             </ResponsiveContainer>
 
             <div className="grid grid-cols-2 gap-1 mt-2 text-xs">
-                {chartData.map(item => (
-                    <div key={item.name} className="flex items-center gap-1">
-                        <div
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: item.fill }}
-                        />
-                        <span className="text-foreground-muted truncate">{item.name}</span>
-                    </div>
-                ))}
+                {chartData.map(item => {
+                    const percentage = ((item.value / total) * 100).toFixed(0)
+                    return (
+                        <div key={item.name} className="flex items-center gap-1">
+                            <div
+                                className="w-2 h-2 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: item.fill }}
+                            />
+                            <span className="text-foreground-muted truncate">
+                                {item.name} {percentage}%
+                            </span>
+                        </div>
+                    )
+                })}
             </div>
         </div>
     )

@@ -1,6 +1,6 @@
 'use client'
 
-import { formatNumber, truncate, getBrandColor } from '@/lib/utils'
+import { formatNumber, getBrandColor } from '@/lib/utils'
 import type { TopProduct } from '@/types'
 
 interface TopProductsTableProps {
@@ -47,15 +47,15 @@ export function TopProductsTable({
             {displayData.map((product, idx) => (
               <tr key={product.product_code} className="hover:bg-surface-elevated transition-colors">
                 <td>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-foreground-muted font-mono w-5">
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs text-foreground-muted font-mono w-5 mt-0.5">
                       {idx + 1}
                     </span>
-                    <div>
-                      <div className="font-medium text-foreground">
-                        {truncate(product.product_name, 35)}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-foreground text-sm leading-tight break-words">
+                        {product.product_name}
                       </div>
-                      <div className="text-xs text-foreground-muted font-mono">
+                      <div className="text-xs text-foreground-muted font-mono mt-0.5">
                         {product.product_code}
                       </div>
                     </div>
