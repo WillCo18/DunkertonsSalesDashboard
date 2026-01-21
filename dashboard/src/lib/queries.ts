@@ -440,6 +440,90 @@ export async function getReturningCustomers(
     .slice(0, limit)
 }
 
+// Get lapsed customers for a specific month
+// Lapsed = ordered LAST month but NOT this month
+export async function getLapsedCustomers(
+  month: string,
+  limit = 100
+): Promise<Array<{
+  del_account: string
+  customer_name: string
+  delivery_city: string | null
+  delivery_postcode: string | null
+  salesperson: string | null
+  last_month_units: number
+}>> {
+  // Calculate previous month
+  const currentDate = new Date(month)
+  const prevMonthDate = new Date(currentDate)
+  prevMonthDate.setMonth(prevMonthDate.getMonth() - 1)
+  const prevMonth = prevMonthDate.toISOString().slice(0, 10)
+
+  // Step 1: Get customers who ordered LAST month
+  const { data: lastMonthCustomers } = await supabase
+    .from('fact_shipments')
+    .select('del_account, quantity')
+    .eq('report_month', prevMonth)
+
+  if (!lastMonthCustomers || lastMonthCustomers.length === 0) return []
+
+  // Aggregate units from last month
+  const lastMonthUnits: Record<string, number> = {}
+  for (const row of lastMonthCustomers) {
+    lastMonthUnits[row.del_account] = (lastMonthUnits[row.del_account] || 0) + row.quantity
+  }
+
+  const lastMonthAccounts = Object.keys(lastMonthUnits)
+
+  // Step 2: Get customers who ordered THIS month
+  const { data: currentMonthCustomers } = await supabase
+    .from('fact_shipments')
+    .select('del_account')
+    .eq('report_month', month)
+    .in('del_account', lastMonthAccounts)
+
+  const currentMonthAccounts = new Set(currentMonthCustomers?.map(r => r.del_account) || [])
+
+  // Step 3: Filter to only customers who ordered LAST month but NOT this month
+  const lapsedAccounts = lastMonthAccounts.filter(acc => !currentMonthAccounts.has(acc))
+
+  if (lapsedAccounts.length === 0) return []
+
+  // Step 4: Get customer details and salesperson
+  const { data: customers } = await supabase
+    .from('dim_customer')
+    .select('del_account, customer_name, delivery_city, delivery_postcode')
+    .in('del_account', lapsedAccounts)
+
+  // Get last salesperson for each customer
+  const { data: salespersonData } = await supabase
+    .from('fact_shipments')
+    .select('del_account, salesperson')
+    .in('del_account', lapsedAccounts)
+    .eq('report_month', prevMonth)
+
+  const salespersonMap: Record<string, string | null> = {}
+  for (const row of salespersonData || []) {
+    if (!salespersonMap[row.del_account]) {
+      salespersonMap[row.del_account] = row.salesperson
+    }
+  }
+
+  // Build result
+  const result = (customers || []).map(customer => ({
+    del_account: customer.del_account,
+    customer_name: customer.customer_name,
+    delivery_city: customer.delivery_city,
+    delivery_postcode: customer.delivery_postcode,
+    salesperson: salespersonMap[customer.del_account] || null,
+    last_month_units: lastMonthUnits[customer.del_account]
+  }))
+
+  return result
+    .sort((a, b) => b.last_month_units - a.last_month_units)
+    .slice(0, limit)
+}
+
 // Get at-risk customers
 export async function getAtRiskCustomers(limit = 20): Promise<AtRiskCustomer[]> {
   const { data, error } = await supabase

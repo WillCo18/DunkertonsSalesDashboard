@@ -7,6 +7,7 @@ import {
   getNewCustomers,
   getReturningCustomers,
   getNewCustomersRecent,
+  getLapsedCustomers,
   getAtRiskCustomers,
   getTopCustomers,
   getTopProducts,
@@ -51,6 +52,12 @@ export function useDashboardData(filters: FilterState) {
   const { data: newCustomersRecent = [], isLoading: newCustomersRecentLoading } = useSWR(
     months.length === 1 ? ['new-customers-recent', months[0]] : 'new-customers-recent',
     () => getNewCustomersRecent(2, 20, months.length === 1 ? months[0] : undefined)
+  )
+
+  // Lapsed customers (ordered last month but not this month)
+  const { data: lapsedCustomers = [], isLoading: lapsedCustomersLoading } = useSWR(
+    months.length === 1 ? ['lapsed-customers', months[0]] : null,
+    () => months.length === 1 ? getLapsedCustomers(months[0], 20) : Promise.resolve([])
   )
 
   // At-risk customers
@@ -166,6 +173,7 @@ export function useDashboardData(filters: FilterState) {
     isNewCustomersLoading: newCustomersLoading,
     isReturningCustomersLoading: returningCustomersLoading,
     isNewCustomersRecentLoading: newCustomersRecentLoading,
+    isLapsedCustomersLoading: lapsedCustomersLoading,
     isAtRiskLoading: atRiskLoading,
     isTopCustomersLoading: topCustomersLoading,
     isTopProductsLoading: topProductsLoading,
@@ -176,6 +184,7 @@ export function useDashboardData(filters: FilterState) {
     newCustomers,
     returningCustomers,
     newCustomersRecent,
+    lapsedCustomers,
     atRiskCustomers,
     topCustomers,
     topProducts,

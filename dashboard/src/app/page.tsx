@@ -5,7 +5,7 @@ import { AppShell } from '@/components/layout'
 import { KPIDeck } from '@/components/kpi'
 import { VolumeTrendChart, BrandDistChart } from '@/components/charts'
 import { TopCustomersTable, TopProductsTable, RawDataTable } from '@/components/tables'
-import { NewCustomersList, NewCustomersRecentList, AtRiskCustomersList, EnhancedGapAnalysis, CrossProductGapAnalysis } from '@/components/insights'
+import { NewCustomersList, NewCustomersRecentList, AtRiskCustomersList, LapsedCustomersList, EnhancedGapAnalysis, CrossProductGapAnalysis } from '@/components/insights'
 import { ExportPanel } from '@/components/export'
 import { useFilters } from '@/hooks/useFilters'
 import { useDashboardData } from '@/hooks/useDashboardData'
@@ -28,6 +28,7 @@ export default function DashboardPage() {
     newCustomers,
     returningCustomers,
     newCustomersRecent,
+    lapsedCustomers,
     atRiskCustomers,
     topCustomers,
     topProducts,
@@ -142,6 +143,11 @@ export default function DashboardPage() {
               <div id="at-risk-section">
                 <AtRiskCustomersList data={atRiskCustomers} loading={isLoading} />
               </div>
+              <LapsedCustomersList
+                data={lapsedCustomers}
+                loading={isLoading}
+                currentMonth={filters.reportMonth.length === 1 ? filters.reportMonth[0] : undefined}
+              />
 
               <ExportPanel
                 currentMonth={currentMonth || undefined}
