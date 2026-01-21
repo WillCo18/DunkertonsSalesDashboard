@@ -61,7 +61,15 @@ export function KPICard({
             )}
           </div>
 
-          <div className="kpi-value mb-1 truncate" title={typeof value === 'string' ? value : undefined}>
+          <div
+            className={cn(
+              "mb-1",
+              format === 'text'
+                ? "text-base font-semibold text-foreground leading-tight break-words"
+                : "kpi-value truncate"
+            )}
+            title={typeof value === 'string' ? value : undefined}
+          >
             {formattedValue}
           </div>
 
