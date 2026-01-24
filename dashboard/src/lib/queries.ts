@@ -29,6 +29,21 @@ export async function getAvailableMonths(): Promise<string[]> {
   return months
 }
 
+// Get full customer details including enrichment
+export async function getCustomerDetails(accountId: string): Promise<any | null> {
+  const { data, error } = await supabase
+    .from('dim_customer')
+    .select('*')
+    .eq('del_account', accountId)
+    .single()
+
+  if (error) {
+    console.error('Error fetching customer details:', error)
+    return null
+  }
+  return data
+}
+
 // Get monthly summary KPIs (reactive to filters)
 export async function getMonthlySummary(
   filters: Partial<FilterState>
@@ -1223,5 +1238,20 @@ export async function getCustomGapAnalysis(
     }))
     .sort((a, b) => b.total_units - a.total_units)
     .slice(0, limit)
+}
+
+// Get full shipment history for a customer (for CRM view)
+export async function getCustomerShipments(accountId: string): Promise<Shipment[]> {
+  const { data, error } = await supabase
+    .from('fact_shipments')
+    .select('*')
+    .eq('del_account', accountId)
+    .order('report_month', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching customer shipments:', error)
+    return []
+  }
+  return data || []
 }
 

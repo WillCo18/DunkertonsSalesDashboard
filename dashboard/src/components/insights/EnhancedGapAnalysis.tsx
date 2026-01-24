@@ -20,13 +20,15 @@ interface EnhancedGapAnalysisProps {
     availableFormats: string[]
     availableSalespeople: string[]
     currentMonth?: string[] // Changed to array for multi-month support
+    onRowClick?: (customerId: string) => void
 }
 
 export function EnhancedGapAnalysis({
     availableBrands,
     availableFormats,
     availableSalespeople,
-    currentMonth
+    currentMonth,
+    onRowClick
 }: EnhancedGapAnalysisProps) {
     // Filter state
     const [selectedBrand, setSelectedBrand] = useState<string>('')
@@ -239,6 +241,7 @@ export function EnhancedGapAnalysis({
                                 <div
                                     key={customer.del_account}
                                     className="p-4 bg-surface-elevated rounded-lg border border-transparent hover:border-accent/30 transition-all group cursor-pointer"
+                                    onClick={() => onRowClick?.(customer.del_account)}
                                 >
                                     <div className="flex items-start justify-between mb-2">
                                         <div className="flex-1">

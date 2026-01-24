@@ -21,13 +21,15 @@ interface CrossProductGapAnalysisProps {
     availableFormats: string[]
     availableSalespeople: string[]
     currentMonth?: string[] // Changed to array for multi-month support
+    onRowClick?: (id: string) => void
 }
 
 export function CrossProductGapAnalysis({
     availableBrands,
     availableFormats,
     availableSalespeople,
-    currentMonth
+    currentMonth,
+    onRowClick
 }: CrossProductGapAnalysisProps) {
     // Condition 1: STOCKS
     const [stocksBrand, setStocksBrand] = useState<string>('')
@@ -271,6 +273,7 @@ export function CrossProductGapAnalysis({
                             {filteredData.map((customer: GapCustomer) => (
                                 <div
                                     key={customer.del_account}
+                                    onClick={() => onRowClick?.(customer.del_account)}
                                     className="p-4 bg-surface-elevated rounded-lg border border-transparent hover:border-accent/30 transition-all group cursor-pointer"
                                 >
                                     <div className="flex items-start justify-between mb-2">

@@ -1,15 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { AppShell } from '@/components/layout'
+import { AppShell } from '@/components/layout/AppShell'
+import { Sidebar } from '@/components/layout/Sidebar'
 import { KPIDeck } from '@/components/kpi'
 import { VolumeTrendChart, BrandDistChart } from '@/components/charts'
 import { TopCustomersTable, TopProductsTable, RawDataTable } from '@/components/tables'
 import { NewCustomersList, NewCustomersRecentList, AtRiskCustomersList, LapsedCustomersList, EnhancedGapAnalysis, CrossProductGapAnalysis } from '@/components/insights'
 import { ExportPanel } from '@/components/export'
+import { CustomerDetailsDrawer } from '@/components/crm/CustomerDetailsDrawer'
 import { useFilters } from '@/hooks/useFilters'
 import { useDashboardData } from '@/hooks/useDashboardData'
+import { getCustomerDetails } from '@/lib/queries'
 import { Table, LayoutGrid } from 'lucide-react'
+import { Customer } from '@/types'
 
 export default function DashboardPage() {
   const {
@@ -46,27 +50,44 @@ export default function DashboardPage() {
 
   const [showRawData, setShowRawData] = useState(false)
 
+  // Drawer State
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+
   // Scroll handlers for KPI tiles
   const scrollToSection = (id: string) => {
+    // ... existing logic ...
     const element = document.getElementById(id)
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }
 
+  // Handle row click to open drawer
+  const handleCustomerClick = async (customerId: string) => {
+    // Optimistic UI or fetch loading state could be added here
+    const customer = await getCustomerDetails(customerId)
+    if (customer) {
+      setSelectedCustomer(customer)
+      setIsDrawerOpen(true)
+    }
+  }
+
   return (
     <AppShell
-      filters={filters}
-      setFilter={setFilter}
-      toggleArrayFilter={toggleArrayFilter}
-      resetFilters={resetFilters}
-      hasActiveFilters={hasActiveFilters}
-      availableMonths={availableMonths}
-      filterOptions={filterOptions}
-      currentMonth={currentMonth || undefined}
-      mappingCoverage={mappingCoverage}
+      sidebar={
+        <Sidebar
+          filters={filters}
+          setFilter={setFilter}
+          toggleArrayFilter={toggleArrayFilter}
+          resetFilters={resetFilters}
+          hasActiveFilters={hasActiveFilters}
+          availableMonths={availableMonths}
+          filterOptions={filterOptions}
+        />
+      }
     >
-      <div className="space-y-6">
+      <div className="p-6 space-y-6">
         {/* Header with Toggle */}
         <div className="flex justify-between items-center bg-surface p-4 rounded-lg border border-border shadow-card">
           <div>
@@ -130,23 +151,41 @@ export default function DashboardPage() {
 
             {/* Tables Row */}
             <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <TopCustomersTable data={topCustomers} loading={isLoading} />
+              <TopCustomersTable
+                data={topCustomers}
+                loading={isLoading}
+                onRowClick={handleCustomerClick}
+              />
               <TopProductsTable data={topProducts} loading={isLoading} />
             </section>
 
             {/* Insights Row - Now with 5 widgets */}
             <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               <div id="new-customers-section">
-                <NewCustomersList data={newCustomers} returningData={returningCustomers} loading={isLoading} />
+                <NewCustomersList
+                  data={newCustomers}
+                  returningData={returningCustomers}
+                  loading={isLoading}
+                  onRowClick={handleCustomerClick}
+                />
               </div>
-              <NewCustomersRecentList data={newCustomersRecent} loading={isLoading} />
+              <NewCustomersRecentList
+                data={newCustomersRecent}
+                loading={isLoading}
+                onRowClick={handleCustomerClick}
+              />
               <div id="at-risk-section">
-                <AtRiskCustomersList data={atRiskCustomers} loading={isLoading} />
+                <AtRiskCustomersList
+                  data={atRiskCustomers}
+                  loading={isLoading}
+                  onRowClick={handleCustomerClick}
+                />
               </div>
               <LapsedCustomersList
                 data={lapsedCustomers}
                 loading={isLoading}
                 currentMonth={filters.reportMonth.length === 1 ? filters.reportMonth[0] : undefined}
+                onRowClick={handleCustomerClick}
               />
 
               <ExportPanel
@@ -167,6 +206,7 @@ export default function DashboardPage() {
                 availableFormats={filterOptions.packFormats}
                 availableSalespeople={filterOptions.salespeople}
                 currentMonth={filters.reportMonth}
+                onRowClick={handleCustomerClick}
               />
             </section>
 
@@ -177,11 +217,19 @@ export default function DashboardPage() {
                 availableFormats={filterOptions.packFormats}
                 availableSalespeople={filterOptions.salespeople}
                 currentMonth={filters.reportMonth}
+                onRowClick={handleCustomerClick}
               />
             </section>
           </>
         )}
       </div>
+
+      {/* Customer Details Drawer */}
+      <CustomerDetailsDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        customer={selectedCustomer}
+      />
     </AppShell>
   )
 }

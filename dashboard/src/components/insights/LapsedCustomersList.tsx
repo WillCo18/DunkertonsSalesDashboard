@@ -17,6 +17,7 @@ interface LapsedCustomersListProps {
     loading?: boolean
     currentMonth?: string
     onExport?: () => void
+    onRowClick?: (id: string) => void
 }
 
 export function LapsedCustomersList({
@@ -24,6 +25,7 @@ export function LapsedCustomersList({
     loading = false,
     currentMonth,
     onExport,
+    onRowClick,
 }: LapsedCustomersListProps) {
     // Calculate previous month for display
     const getPrevMonthLabel = () => {
@@ -85,7 +87,8 @@ export function LapsedCustomersList({
                     data.map((customer) => (
                         <div
                             key={customer.del_account}
-                            className="flex items-center justify-between py-2 px-3 bg-surface-elevated rounded-lg hover:bg-border transition-colors"
+                            onClick={() => onRowClick?.(customer.del_account)}
+                            className="flex items-center justify-between py-2 px-3 bg-surface-elevated rounded-lg hover:bg-border transition-colors cursor-pointer"
                         >
                             <div className="flex-1 min-w-0">
                                 <div className="font-medium text-foreground text-sm">

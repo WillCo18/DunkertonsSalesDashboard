@@ -8,12 +8,14 @@ interface AtRiskCustomersListProps {
   data: AtRiskCustomer[]
   loading?: boolean
   onExport?: () => void
+  onRowClick?: (id: string) => void
 }
 
 export function AtRiskCustomersList({
   data,
   loading = false,
   onExport,
+  onRowClick,
 }: AtRiskCustomersListProps) {
   if (loading) {
     return (
@@ -62,7 +64,8 @@ export function AtRiskCustomersList({
           data.map((customer) => (
             <div
               key={customer.del_account}
-              className="flex items-center justify-between py-2 px-3 bg-surface-elevated rounded-lg hover:bg-border transition-colors"
+              onClick={() => onRowClick?.(customer.del_account)}
+              className="flex items-center justify-between py-2 px-3 bg-surface-elevated rounded-lg hover:bg-border transition-colors cursor-pointer"
             >
               <div>
                 <div className="font-medium text-foreground text-sm">
@@ -74,11 +77,10 @@ export function AtRiskCustomersList({
               </div>
               <div className="text-right">
                 <div
-                  className={`font-mono text-sm ${
-                    customer.months_since_last_order >= 2
-                      ? 'text-danger'
-                      : 'text-warning'
-                  }`}
+                  className={`font-mono text-sm ${customer.months_since_last_order >= 2
+                    ? 'text-danger'
+                    : 'text-warning'
+                    }`}
                 >
                   {customer.months_since_last_order}mo ago
                 </div>

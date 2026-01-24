@@ -20,6 +20,7 @@ interface NewCustomersListProps {
   returningData?: ReturningCustomer[]
   loading?: boolean
   onExport?: () => void
+  onRowClick?: (id: string) => void
 }
 
 export function NewCustomersList({
@@ -27,6 +28,7 @@ export function NewCustomersList({
   returningData = [],
   loading = false,
   onExport,
+  onRowClick,
 }: NewCustomersListProps) {
   const [activeTab, setActiveTab] = useState<'new' | 'returning'>('new')
 
@@ -73,8 +75,8 @@ export function NewCustomersList({
         <button
           onClick={() => setActiveTab('new')}
           className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'new'
-              ? 'bg-success/20 text-success border border-success/30'
-              : 'bg-surface-elevated text-foreground-muted hover:text-foreground border border-transparent'
+            ? 'bg-success/20 text-success border border-success/30'
+            : 'bg-surface-elevated text-foreground-muted hover:text-foreground border border-transparent'
             }`}
         >
           <div className="flex items-center justify-center gap-2">
@@ -88,8 +90,8 @@ export function NewCustomersList({
         <button
           onClick={() => setActiveTab('returning')}
           className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'returning'
-              ? 'bg-info/20 text-info border border-info/30'
-              : 'bg-surface-elevated text-foreground-muted hover:text-foreground border border-transparent'
+            ? 'bg-info/20 text-info border border-info/30'
+            : 'bg-surface-elevated text-foreground-muted hover:text-foreground border border-transparent'
             }`}
         >
           <div className="flex items-center justify-center gap-2">
@@ -124,7 +126,8 @@ export function NewCustomersList({
           data.map((customer) => (
             <div
               key={customer.del_account}
-              className="flex items-center justify-between py-2 px-3 bg-surface-elevated rounded-lg hover:bg-border transition-colors"
+              onClick={() => onRowClick?.(customer.del_account)}
+              className="flex items-center justify-between py-2 px-3 bg-surface-elevated rounded-lg hover:bg-border transition-colors cursor-pointer"
             >
               <div>
                 <div className="font-medium text-foreground text-sm">
@@ -146,7 +149,8 @@ export function NewCustomersList({
           returningData.map((customer) => (
             <div
               key={customer.del_account}
-              className="flex items-center justify-between py-2 px-3 bg-surface-elevated rounded-lg hover:bg-border transition-colors"
+              onClick={() => onRowClick?.(customer.del_account)}
+              className="flex items-center justify-between py-2 px-3 bg-surface-elevated rounded-lg hover:bg-border transition-colors cursor-pointer"
             >
               <div className="flex-1">
                 <div className="font-medium text-foreground text-sm">

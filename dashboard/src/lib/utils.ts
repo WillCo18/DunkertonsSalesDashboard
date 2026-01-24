@@ -50,6 +50,7 @@ export const BRAND_COLORS: Record<string, string> = {
   Premium: '#10B981',        // Emerald
   Vintage: '#F59E0B',        // Amber
   Perry: '#EC4899',          // Pink
+  Mulled: '#EF4444',         // Red
   Unknown: '#6B7280',        // Gray
 }
 

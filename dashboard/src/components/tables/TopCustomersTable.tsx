@@ -7,12 +7,14 @@ interface TopCustomersTableProps {
   data: TopCustomer[]
   loading?: boolean
   limit?: number
+  onRowClick?: (customerId: string) => void
 }
 
 export function TopCustomersTable({
   data,
   loading = false,
   limit = 10,
+  onRowClick,
 }: TopCustomersTableProps) {
   const displayData = data.slice(0, limit)
 
@@ -45,7 +47,11 @@ export function TopCustomersTable({
           </thead>
           <tbody>
             {displayData.map((customer, idx) => (
-              <tr key={customer.del_account} className="hover:bg-surface-elevated transition-colors">
+              <tr
+                key={customer.del_account}
+                className={`transition-colors ${onRowClick ? 'cursor-pointer hover:bg-surface-elevated' : ''}`}
+                onClick={() => onRowClick?.(customer.del_account)}
+              >
                 <td>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-foreground-muted font-mono w-5">

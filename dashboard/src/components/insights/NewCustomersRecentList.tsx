@@ -8,12 +8,14 @@ interface NewCustomersRecentListProps {
     data: NewCustomer[]
     loading?: boolean
     onExport?: () => void
+    onRowClick?: (id: string) => void
 }
 
 export function NewCustomersRecentList({
     data,
     loading = false,
     onExport,
+    onRowClick,
 }: NewCustomersRecentListProps) {
     if (loading) {
         return (
@@ -62,7 +64,8 @@ export function NewCustomersRecentList({
                     data.map((customer) => (
                         <div
                             key={customer.del_account}
-                            className="flex items-center justify-between py-2 px-3 bg-surface-elevated rounded-lg hover:bg-border transition-colors"
+                            onClick={() => onRowClick?.(customer.del_account)}
+                            className="flex items-center justify-between py-2 px-3 bg-surface-elevated rounded-lg hover:bg-border transition-colors cursor-pointer"
                         >
                             <div>
                                 <div className="font-medium text-foreground text-sm">

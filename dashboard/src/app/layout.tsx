@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 
+import { ChatWidget } from '@/components/ai/ChatWidget'
+
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
@@ -26,6 +28,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans bg-background text-foreground`}>
         {children}
+        <ChatWidget />
       </body>
     </html>
   )

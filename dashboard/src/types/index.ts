@@ -16,10 +16,26 @@ export interface Customer {
   delivery_address: string | null
   delivery_city: string | null
   delivery_postcode: string | null
+  latitude: number | null
+  longitude: number | null
   region: string | null
   customer_type: string | null
   first_seen: string
   last_seen: string
+  parent_account_id: string | null
+  enrichment: {
+    contacts?: Array<{
+      name: string
+      role?: string
+      email?: string
+      phone?: string
+    }>
+    socials?: {
+      instagram_id?: string
+    }
+    tags?: string[]
+    notes?: string
+  } | null
 }
 
 export interface Shipment {
