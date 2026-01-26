@@ -24,10 +24,14 @@ export async function POST(req: Request) {
        -> Call 'search_customers' to get the ID.
        -> THEN call 'get_customer_history' or 'get_customer_details'.
     
-    2. IF asking about a BRAND or PRODUCT (e.g. "Black Fox sales", "Dunkertons performance"):
+    2. IF asking about CONTACT INFO or WEB PRESENCE (e.g. "Find website for The Crown", "Does Red Lion have an instagram?"):
+       -> Call 'find_venue_contact' with city/postcode if available.
+       -> IF Instagram handle found, PROACTIVELY call 'enrich_instagram'.
+
+    3. IF asking about a BRAND or PRODUCT (e.g. "Black Fox sales", "Dunkertons performance"):
        -> Call 'get_monthly_kpis' with 'brandFamily' set to the brand name.
     
-    3. IF asking about GAP ANALYSIS (e.g. "Who stocks X but not Y"):
+    4. IF asking about GAP ANALYSIS (e.g. "Who stocks X but not Y"):
        -> Call 'check_product_gaps'.
 
     TONE & STYLE:

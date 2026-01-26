@@ -8,9 +8,13 @@ pandas>=2.0.0
 openpyxl>=3.1.0  # Excel file support
 
 # Environment
+# Networking
+requests>=2.28.0
 python-dotenv>=1.0.0
 
 # Development
 pytest>=7.0.0
 black>=23.0.0
 mypy>=1.0.0
+thefuzz>=0.19.0
+python-Levenshtein>=0.20.0  # Speedup for thefuzz

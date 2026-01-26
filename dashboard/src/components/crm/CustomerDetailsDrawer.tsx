@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { X, User, Phone, Mail, Instagram, Edit2, Save, FileText, History, Package, Search } from 'lucide-react'
+import { X, User, Phone, Mail, Instagram, Edit2, Save, FileText, History, Package, Search, Loader2, Sparkles } from 'lucide-react'
 import { Customer, Shipment } from '@/types'
 import { formatNumber } from '@/lib/utils'
 import { StockingMatrix } from './StockingMatrix'
 import { getCustomerShipments } from '@/lib/queries'
 import useSWR from 'swr'
+import { enrichCustomerAction } from '@/app/actions/enrich-customer'
 
 interface CustomerDetailsDrawerProps {
     isOpen: boolean
@@ -28,6 +29,8 @@ export function CustomerDetailsDrawer({
         tags: [],
         notes: ''
     })
+
+    const [isEnriching, setIsEnriching] = useState(false)
 
     // History Filter State
     const [historySearch, setHistorySearch] = useState('')
@@ -61,6 +64,26 @@ export function CustomerDetailsDrawer({
             (s.source_description && s.source_description.toLowerCase().includes(term))
         )
     }, [shipments, historySearch])
+
+    const handleAutoEnrich = async () => {
+        if (!customer) return
+        setIsEnriching(true)
+        try {
+            const result = await enrichCustomerAction(customer)
+            if (result.success && result.data) {
+                setEnrichmentData(result.data)
+                // Optionally make a toast or simple alert for now
+                console.log("Enrichment updated", result.data)
+            } else {
+                alert('Enrichment failed: ' + result.message)
+            }
+        } catch (e: any) {
+            console.error(e)
+            alert(`Enrichment error: ${e.message || e}`)
+        } finally {
+            setIsEnriching(false)
+        }
+    }
 
     if (!isOpen || !customer) return null
 
@@ -154,18 +177,44 @@ export function CustomerDetailsDrawer({
                                     Social Snapshot
                                 </h3>
                                 {enrichmentData.socials?.instagram_id ? (
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 rounded-full p-0.5">
-                                            <div className="w-full h-full bg-surface rounded-full flex items-center justify-center">
-                                                <Instagram className="w-6 h-6 text-foreground" />
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 rounded-full p-0.5">
+                                                <div className="w-full h-full bg-surface rounded-full flex items-center justify-center">
+                                                    <Instagram className="w-6 h-6 text-foreground" />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-foreground">{enrichmentData.socials.instagram_id}</div>
+                                                <div className="flex items-center gap-2 text-xs text-foreground-muted">
+                                                    <span>{formatNumber(enrichmentData.instagram_cnt || 0)} followers</span>
+                                                </div>
+                                                <a href={`https://instagram.com/${enrichmentData.socials.instagram_id.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline block mt-1">
+                                                    View Profile
+                                                </a>
                                             </div>
                                         </div>
-                                        <div>
-                                            <div className="font-medium text-foreground">{enrichmentData.socials.instagram_id}</div>
-                                            <a href={`https://instagram.com/${enrichmentData.socials.instagram_id.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline">
-                                                View Profile
-                                            </a>
-                                        </div>
+
+                                        {enrichmentData.instagram_bio && (
+                                            <p className="text-sm text-foreground-secondary italic border-l-2 border-accent/20 pl-3">
+                                                "{enrichmentData.instagram_bio}"
+                                            </p>
+                                        )}
+
+                                        {enrichmentData.latest_posts && enrichmentData.latest_posts.length > 0 && (
+                                            <div className="grid grid-cols-3 gap-2 mt-2">
+                                                {enrichmentData.latest_posts.map((post: any, i: number) => (
+                                                    <div key={i} className="aspect-square bg-surface rounded-lg overflow-hidden border border-border relative group">
+                                                        {/* Note: We aren't showing images yet as we just have URLs, but let's try if they work. Often expired. */}
+                                                        {post.url ? (
+                                                            <img src={post.url} alt="Post" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center bg-surface-elevated text-xs text-foreground-muted">Post {i + 1}</div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="text-center py-6 text-foreground-muted text-sm border-2 border-dashed border-border rounded-lg">
@@ -269,12 +318,43 @@ export function CustomerDetailsDrawer({
                         <div className="space-y-6">
                             <div className="flex items-center justify-between mb-2">
                                 <h3 className="text-lg font-semibold text-foreground">Key Contacts</h3>
-                                <button className="text-sm text-accent hover:underline flex items-center gap-1">
-                                    <Edit2 className="w-3 h-3" /> Edit
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleAutoEnrich}
+                                        disabled={isEnriching}
+                                        className="text-xs flex items-center gap-1 px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-full transition-colors disabled:opacity-50"
+                                    >
+                                        {isEnriching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                        {isEnriching ? 'Enriching...' : 'Auto-Enrich'}
+                                    </button>
+                                    <button className="text-sm text-accent hover:underline flex items-center gap-1">
+                                        <Edit2 className="w-3 h-3" /> Edit
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="space-y-3">
+                                <div className="p-4 bg-surface-elevated border border-border rounded-xl">
+                                    <div className="text-sm font-medium text-foreground mb-2">Venue Details (Enriched)</div>
+                                    <div className="space-y-2">
+                                        {enrichmentData.phone ? (
+                                            <div className="flex items-center gap-2 text-sm text-foreground-secondary">
+                                                <Phone className="w-4 h-4 text-accent" />
+                                                {enrichmentData.phone}
+                                            </div>
+                                        ) : (
+                                            <div className="text-xs text-foreground-muted flex items-center gap-2"><Phone className="w-3 h-3" /> No Phone Found</div>
+                                        )}
+
+                                        {enrichmentData.website && (
+                                            <div className="flex items-center gap-2 text-sm text-foreground-secondary">
+                                                <FileText className="w-4 h-4 text-accent" />
+                                                <a href={enrichmentData.website} target="_blank" className="hover:underline">{enrichmentData.website}</a>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
                                 {(enrichmentData.contacts || []).map((contact: any, idx: number) => (
                                     <div key={idx} className="p-4 bg-surface-elevated border border-border rounded-xl">
                                         <div className="flex items-start gap-4">

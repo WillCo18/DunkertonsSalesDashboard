@@ -153,7 +153,7 @@ export function ChatWidget() {
                                     {/* Tool Invocations Display */}
                                     {m.toolInvocations?.map(toolInvocation => {
                                         const toolCallId = toolInvocation.toolCallId;
-                                        const addResult = toolInvocation.result ? '✅ ' : '⏳ ';
+                                        const addResult = 'result' in toolInvocation ? '✅ ' : '⏳ ';
                                         // Minimal UI for tool calls to show activity
                                         return (
                                             <div key={toolCallId} className="text-xs text-foreground-muted mb-1 italic">

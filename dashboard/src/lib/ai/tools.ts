@@ -96,5 +96,41 @@ export const tools = {
 
             return await getMonthlySummary(filters)
         }
+    }),
+
+    find_venue_contact: tool({
+        description: 'Search Google Maps for a venue to find Phone Number, Website, and Social Links. Use when data is missing.',
+        parameters: z.object({
+            venueName: z.string().describe('Name of the venue (e.g. "The Red Lion")'),
+            city: z.string().describe('City or Town'),
+            postcode: z.string().optional().describe('Postcode if known')
+        }),
+        execute: async ({ venueName, city, postcode }: { venueName: string, city: string, postcode?: string }) => {
+            const { findVenueContact } = await import('@/lib/services/enrichment');
+            try {
+                const result = await findVenueContact(venueName, city, postcode);
+                if (!result) return "No results found on Google Maps.";
+                return result;
+            } catch (error: any) {
+                return `Error searching Google Maps: ${error.message}`;
+            }
+        }
+    }),
+
+    enrich_instagram: tool({
+        description: 'Get deep profile insights from Instagram (Bio, Followers, Posts). REQUIREMENT: You must have a valid Instagram username/handle first.',
+        parameters: z.object({
+            username: z.string().describe('Instagram username (handle) without @')
+        }),
+        execute: async ({ username }: { username: string }) => {
+            const { enrichInstagram } = await import('@/lib/services/enrichment');
+            try {
+                const result = await enrichInstagram(username);
+                if (!result) return "No profile found or private account.";
+                return result;
+            } catch (error: any) {
+                return `Error scraping Instagram: ${error.message}`;
+            }
+        }
     })
 }
