@@ -183,3 +183,9 @@ export interface CustomGapOpportunity {
   has_type: string
   missing_type: string
 }
+
+export interface CustomerListItem {
+  del_account: string
+  customer_name: string
+  last_order_month: string
+}

@@ -10,6 +10,7 @@ import type {
   GapAnalysisBrand,
   FilterState,
   Shipment,
+  CustomerListItem,
 } from '@/types'
 
 // Get available months for filter dropdown
@@ -1253,5 +1254,88 @@ export async function getCustomerShipments(accountId: string): Promise<Shipment[
     return []
   }
   return data || []
+}
+
+// Get all customers with last order date (for full customer list)
+export async function getAllCustomersWithLastOrder(
+  filters?: Partial<FilterState>
+): Promise<CustomerListItem[]> {
+  // Build query with filters
+  let query = supabase
+    .from('fact_shipments')
+    .select('del_account, customer_name, report_month, internal_product_code, detected_family, detected_format, salesperson')
+
+  // Apply filters
+  if (filters?.reportMonth && filters.reportMonth.length > 0) {
+    query = query.in('report_month', filters.reportMonth)
+  }
+
+  if (filters?.salesperson && filters.salesperson.length > 0) {
+    query = query.in('salesperson', filters.salesperson)
+  }
+
+  // For brand/format filtering, get product codes first
+  let productCodesToFilter: string[] | null = null
+
+  if ((filters?.brandFamily?.length || 0) > 0 || (filters?.packFormat?.length || 0) > 0) {
+    let prodQuery = supabase.from('dim_product_internal').select('product_code').eq('is_active', true)
+    if (filters?.brandFamily?.length) prodQuery = prodQuery.in('brand_family', filters.brandFamily)
+    if (filters?.packFormat?.length) prodQuery = prodQuery.in('pack_format', filters.packFormat)
+
+    const { data: prodData } = await prodQuery
+    if (prodData && prodData.length > 0) {
+      productCodesToFilter = prodData.map(p => p.product_code)
+    }
+  }
+
+  if (productCodesToFilter && productCodesToFilter.length > 0) {
+    query = query.in('internal_product_code', productCodesToFilter)
+  } else if (filters?.brandFamily?.length || filters?.packFormat?.length) {
+    // Fallback to detected columns for unmapped products
+    if (filters?.brandFamily?.length) query = query.in('detected_family', filters.brandFamily)
+    if (filters?.packFormat?.length) query = query.in('detected_format', filters.packFormat)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('getAllCustomersWithLastOrder Error:', error)
+    throw error
+  }
+
+  if (!data || data.length === 0) return []
+
+  // Aggregate: find last order month per customer
+  const customerMap: Record<string, { customer_name: string; last_order_month: string }> = {}
+
+  for (const row of data) {
+    if (!customerMap[row.del_account]) {
+      customerMap[row.del_account] = {
+        customer_name: row.customer_name,
+        last_order_month: row.report_month
+      }
+    } else {
+      // Update last order month if this is more recent
+      if (row.report_month > customerMap[row.del_account].last_order_month) {
+        customerMap[row.del_account].last_order_month = row.report_month
+      }
+    }
+  }
+
+  // Convert to array and sort: by last_order_month desc, then alphabetically by name
+  return Object.entries(customerMap)
+    .map(([del_account, info]) => ({
+      del_account,
+      customer_name: info.customer_name,
+      last_order_month: info.last_order_month
+    }))
+    .sort((a, b) => {
+      // First sort by last_order_month descending
+      if (a.last_order_month !== b.last_order_month) {
+        return b.last_order_month.localeCompare(a.last_order_month)
+      }
+      // Then alphabetically by name
+      return a.customer_name.localeCompare(b.customer_name)
+    })
 }
 

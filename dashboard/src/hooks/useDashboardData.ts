@@ -17,6 +17,7 @@ import {
   getGapAnalysisBrand,
   getMonthlyBreakdown,
   getRawShipments,
+  getAllCustomersWithLastOrder,
 } from '@/lib/queries'
 import { calculateDelta, getBrandColor, BRAND_COLORS } from '@/lib/utils'
 import type { FilterState, KPIData, TrendDataPoint, BrandDistribution } from '@/types'
@@ -113,6 +114,12 @@ export function useDashboardData(filters: FilterState) {
     () => getRawShipments(filters, 2000)
   )
 
+  // All customers with last order date
+  const { data: allCustomers = [], isLoading: allCustomersLoading } = useSWR(
+    ['all-customers', filters],
+    () => getAllCustomersWithLastOrder(filters)
+  )
+
   // Calculate KPIs
   const kpiData: KPIData | null = currentSummary
     ? {
@@ -195,10 +202,12 @@ export function useDashboardData(filters: FilterState) {
     gapFormat,
     gapBrand,
     rawShipments,
+    allCustomers,
 
     // Metadata
     currentMonth: months.length === 1 ? months[0] : months.length > 0 ? `${months.length} months` : null,
     mappingCoverage: currentSummary?.mapping_coverage_pct || 0,
     isRawLoading: rawLoading,
+    isAllCustomersLoading: allCustomersLoading,
   }
 }

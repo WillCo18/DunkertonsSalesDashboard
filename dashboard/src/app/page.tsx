@@ -5,7 +5,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { KPIDeck } from '@/components/kpi'
 import { VolumeTrendChart, BrandDistChart } from '@/components/charts'
-import { TopCustomersTable, TopProductsTable, RawDataTable } from '@/components/tables'
+import { TopCustomersTable, TopProductsTable, RawDataTable, CustomerListTable } from '@/components/tables'
 import { NewCustomersList, NewCustomersRecentList, AtRiskCustomersList, LapsedCustomersList, EnhancedGapAnalysis, CrossProductGapAnalysis } from '@/components/insights'
 import { ExportPanel } from '@/components/export'
 import { CustomerDetailsDrawer } from '@/components/crm/CustomerDetailsDrawer'
@@ -46,6 +46,8 @@ export default function DashboardPage() {
     mappingCoverage,
     rawShipments,
     isRawLoading,
+    allCustomers,
+    isAllCustomersLoading,
   } = useDashboardData(filters)
 
   const [showRawData, setShowRawData] = useState(false)
@@ -217,6 +219,15 @@ export default function DashboardPage() {
                 availableFormats={filterOptions.packFormats}
                 availableSalespeople={filterOptions.salespeople}
                 currentMonth={filters.reportMonth}
+                onRowClick={handleCustomerClick}
+              />
+            </section>
+
+            {/* Full Customer List */}
+            <section>
+              <CustomerListTable
+                data={allCustomers}
+                loading={isAllCustomersLoading}
                 onRowClick={handleCustomerClick}
               />
             </section>
