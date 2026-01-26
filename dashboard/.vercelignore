@@ -1,0 +1,25 @@
+# Vercel Ignore File
+# Exclude files from the Vercel build to speed it up and improve security
+
+# Testing
+e2e/
+test-results/
+playwright-report/
+*.spec.ts
+*.test.ts
+
+# Scripts & Automation
+scripts/
+*.sh
+fetch_*.js
+test_*.js
+
+# Documentation
+*.md
+docs/
+
+# Local Environment
+.env*
+.git
+.DS_Store
+node_modules/

@@ -8,6 +8,10 @@ import { StockingMatrix } from './StockingMatrix'
 import { getCustomerShipments } from '@/lib/queries'
 import useSWR from 'swr'
 import { enrichCustomerAction } from '@/app/actions/enrich-customer'
+import { saveCustomerEnrichmentAction } from '@/app/actions/save-customer-enrichment'
+import { useRouter } from 'next/navigation'
+
+
 
 interface CustomerDetailsDrawerProps {
     isOpen: boolean
@@ -31,9 +35,13 @@ export function CustomerDetailsDrawer({
     })
 
     const [isEnriching, setIsEnriching] = useState(false)
+    const [isEditing, setIsEditing] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
+    const router = useRouter()
 
     // History Filter State
     const [historySearch, setHistorySearch] = useState('')
+
 
     // Fetch real shipment history when drawer is open and customer is selected
     const { data: shipments = [], isLoading: isLoadingHistory } = useSWR<Shipment[]>(
@@ -84,6 +92,47 @@ export function CustomerDetailsDrawer({
             setIsEnriching(false)
         }
     }
+
+    const handleSave = async () => {
+        if (!customer) return
+        setIsSaving(true)
+        try {
+            const result = await saveCustomerEnrichmentAction(customer, enrichmentData)
+            if (result.success) {
+                setIsEditing(false)
+                // Mutate SWR or refresh router to reflect changes if needed
+                router.refresh()
+            } else {
+                alert('Save failed: ' + result.message)
+            }
+        } catch (e: any) {
+            console.error(e)
+            alert('Save error: ' + e.message)
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
+    const handleAddContact = () => {
+        setEnrichmentData((prev: any) => ({
+            ...prev,
+            contacts: [...(prev.contacts || []), { name: '', role: '', email: '', phone: '' }]
+        }))
+    }
+
+    const handleRemoveContact = (index: number) => {
+        setEnrichmentData((prev: any) => ({
+            ...prev,
+            contacts: prev.contacts.filter((_: any, i: number) => i !== index)
+        }))
+    }
+
+    const handleContactChange = (index: number, field: string, value: string) => {
+        const newContacts = [...(enrichmentData.contacts || [])]
+        newContacts[index] = { ...newContacts[index], [field]: value }
+        setEnrichmentData((prev: any) => ({ ...prev, contacts: newContacts }))
+    }
+
 
     if (!isOpen || !customer) return null
 
@@ -319,79 +368,225 @@ export function CustomerDetailsDrawer({
                             <div className="flex items-center justify-between mb-2">
                                 <h3 className="text-lg font-semibold text-foreground">Key Contacts</h3>
                                 <div className="flex gap-2">
-                                    <button
-                                        onClick={handleAutoEnrich}
-                                        disabled={isEnriching}
-                                        className="text-xs flex items-center gap-1 px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-full transition-colors disabled:opacity-50"
-                                    >
-                                        {isEnriching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                                        {isEnriching ? 'Enriching...' : 'Auto-Enrich'}
-                                    </button>
-                                    <button className="text-sm text-accent hover:underline flex items-center gap-1">
-                                        <Edit2 className="w-3 h-3" /> Edit
-                                    </button>
+                                    {!isEditing ? (
+                                        <>
+                                            <button
+                                                onClick={handleAutoEnrich}
+                                                disabled={isEnriching}
+                                                className="text-xs flex items-center gap-1 px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-full transition-colors disabled:opacity-50"
+                                            >
+                                                {isEnriching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                                {isEnriching ? 'Enriching...' : 'Auto-Enrich'}
+                                            </button>
+                                            <button
+                                                onClick={() => setIsEditing(true)}
+                                                className="text-sm text-accent hover:underline flex items-center gap-1"
+                                            >
+                                                <Edit2 className="w-3 h-3" /> Edit
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <button
+                                                onClick={() => setIsEditing(false)}
+                                                className="text-sm text-foreground-muted hover:text-foreground px-3 py-1"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleSave}
+                                                disabled={isSaving}
+                                                className="text-sm bg-accent text-background px-3 py-1 rounded-md font-medium flex items-center gap-1"
+                                            >
+                                                {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                                                Save
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
 
                             <div className="space-y-3">
                                 <div className="p-4 bg-surface-elevated border border-border rounded-xl">
-                                    <div className="text-sm font-medium text-foreground mb-2">Venue Details (Enriched)</div>
-                                    <div className="space-y-2">
-                                        {enrichmentData.phone ? (
-                                            <div className="flex items-center gap-2 text-sm text-foreground-secondary">
-                                                <Phone className="w-4 h-4 text-accent" />
-                                                {enrichmentData.phone}
-                                            </div>
-                                        ) : (
-                                            <div className="text-xs text-foreground-muted flex items-center gap-2"><Phone className="w-3 h-3" /> No Phone Found</div>
-                                        )}
+                                    <div className="text-sm font-medium text-foreground mb-4">Venue Details (Enriched)</div>
 
-                                        {enrichmentData.website && (
-                                            <div className="flex items-center gap-2 text-sm text-foreground-secondary">
-                                                <FileText className="w-4 h-4 text-accent" />
-                                                <a href={enrichmentData.website} target="_blank" className="hover:underline">{enrichmentData.website}</a>
-                                            </div>
-                                        )}
+                                    <div className="space-y-3">
+                                        {/* Phone Field */}
+                                        <div className="flex items-center gap-2 text-sm text-foreground-secondary">
+                                            <Phone className="w-4 h-4 text-accent shrink-0" />
+                                            {isEditing ? (
+                                                <input
+                                                    type="text"
+                                                    value={enrichmentData.phone || ''}
+                                                    onChange={(e) => setEnrichmentData({ ...enrichmentData, phone: e.target.value })}
+                                                    placeholder="Phone Number"
+                                                    className="bg-surface border border-border rounded px-2 py-1 w-full focus:border-accent outline-none"
+                                                />
+                                            ) : (
+                                                enrichmentData.phone || <span className="text-foreground-muted text-xs">No Phone Found</span>
+                                            )}
+                                        </div>
+
+                                        {/* Website Field */}
+                                        <div className="flex items-center gap-2 text-sm text-foreground-secondary">
+                                            <FileText className="w-4 h-4 text-accent shrink-0" />
+                                            {isEditing ? (
+                                                <input
+                                                    type="text"
+                                                    value={enrichmentData.website || ''}
+                                                    onChange={(e) => setEnrichmentData({ ...enrichmentData, website: e.target.value })}
+                                                    placeholder="Website URL"
+                                                    className="bg-surface border border-border rounded px-2 py-1 w-full focus:border-accent outline-none"
+                                                />
+                                            ) : (
+                                                enrichmentData.website ? (
+                                                    <a href={enrichmentData.website} target="_blank" className="hover:underline truncate max-w-[300px]">{enrichmentData.website}</a>
+                                                ) : <span className="text-foreground-muted text-xs">No Website</span>
+                                            )}
+                                        </div>
+
+                                        {/* Instagram Handle Field */}
+                                        <div className="flex items-center gap-2 text-sm text-foreground-secondary">
+                                            <Instagram className="w-4 h-4 text-accent shrink-0" />
+                                            {isEditing ? (
+                                                <input
+                                                    type="text"
+                                                    value={enrichmentData.socials?.instagram || ''}
+                                                    onChange={(e) => setEnrichmentData({ ...enrichmentData, socials: { ...enrichmentData.socials, instagram: e.target.value } })}
+                                                    placeholder="Instagram URL or Handle"
+                                                    className="bg-surface border border-border rounded px-2 py-1 w-full focus:border-accent outline-none"
+                                                />
+                                            ) : (
+                                                enrichmentData.socials?.instagram ? (
+                                                    <span className="truncate max-w-[200px]">{enrichmentData.socials.instagram}</span>
+                                                ) : <span className="text-foreground-muted text-xs">No Instagram</span>
+                                            )}
+                                        </div>
+
+                                        {/* Email Field - Added per request */}
+                                        <div className="flex items-center gap-2 text-sm text-foreground-secondary">
+                                            <Mail className="w-4 h-4 text-accent shrink-0" />
+                                            {isEditing ? (
+                                                <input
+                                                    type="text"
+                                                    value={enrichmentData.email || ''}
+                                                    onChange={(e) => setEnrichmentData({ ...enrichmentData, email: e.target.value })}
+                                                    placeholder="Email Address (General)"
+                                                    className="bg-surface border border-border rounded px-2 py-1 w-full focus:border-accent outline-none"
+                                                />
+                                            ) : (
+                                                enrichmentData.email ? (
+                                                    <a href={`mailto:${enrichmentData.email}`} className="hover:underline truncate max-w-[300px]">{enrichmentData.email}</a>
+                                                ) : <span className="text-foreground-muted text-xs">No Email</span>
+                                            )}
+                                        </div>
+
+                                        {/* Secondary Phone Field - Added per request */}
+                                        <div className="flex items-center gap-2 text-sm text-foreground-secondary">
+                                            <Phone className="w-4 h-4 text-accent/50 shrink-0" />
+                                            {isEditing ? (
+                                                <input
+                                                    type="text"
+                                                    value={enrichmentData.secondary_phone || ''}
+                                                    onChange={(e) => setEnrichmentData({ ...enrichmentData, secondary_phone: e.target.value })}
+                                                    placeholder="Secondary Phone"
+                                                    className="bg-surface border border-border rounded px-2 py-1 w-full focus:border-accent outline-none"
+                                                />
+                                            ) : (
+                                                enrichmentData.secondary_phone || <span className="text-foreground-muted text-xs">No Secondary Phone</span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
                                 {(enrichmentData.contacts || []).map((contact: any, idx: number) => (
-                                    <div key={idx} className="p-4 bg-surface-elevated border border-border rounded-xl">
+                                    <div key={idx} className="p-4 bg-surface-elevated border border-border rounded-xl relative group">
+                                        {isEditing && (
+                                            <button
+                                                onClick={() => handleRemoveContact(idx)}
+                                                className="absolute top-2 right-2 text-foreground-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        )}
                                         <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent">
+                                            <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent shrink-0">
                                                 <User className="w-5 h-5" />
                                             </div>
-                                            <div className="flex-1">
-                                                <div className="font-medium text-foreground">{contact.name}</div>
-                                                <div className="text-xs text-foreground-muted mb-2">{contact.role}</div>
-                                                <div className="space-y-1">
-                                                    {contact.email && (
-                                                        <div className="flex items-center gap-2 text-sm text-foreground-secondary">
-                                                            <Mail className="w-3 h-3" /> {contact.email}
+                                            <div className="flex-1 space-y-2">
+                                                {isEditing ? (
+                                                    <>
+                                                        <input
+                                                            className="block w-full bg-surface border border-border rounded px-2 py-1 text-sm font-medium focus:border-accent outline-none"
+                                                            placeholder="Contact Name"
+                                                            value={contact.name}
+                                                            onChange={(e) => handleContactChange(idx, 'name', e.target.value)}
+                                                        />
+                                                        <input
+                                                            className="block w-full bg-surface border border-border rounded px-2 py-1 text-xs focus:border-accent outline-none"
+                                                            placeholder="Role (e.g. Manager)"
+                                                            value={contact.role}
+                                                            onChange={(e) => handleContactChange(idx, 'role', e.target.value)}
+                                                        />
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <input
+                                                                className="bg-surface border border-border rounded px-2 py-1 text-xs focus:border-accent outline-none"
+                                                                placeholder="Email"
+                                                                value={contact.email}
+                                                                onChange={(e) => handleContactChange(idx, 'email', e.target.value)}
+                                                            />
+                                                            <input
+                                                                className="bg-surface border border-border rounded px-2 py-1 text-xs focus:border-accent outline-none"
+                                                                placeholder="Phone"
+                                                                value={contact.phone}
+                                                                onChange={(e) => handleContactChange(idx, 'phone', e.target.value)}
+                                                            />
                                                         </div>
-                                                    )}
-                                                    {contact.phone && (
-                                                        <div className="flex items-center gap-2 text-sm text-foreground-secondary">
-                                                            <Phone className="w-3 h-3" /> {contact.phone}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className="font-medium text-foreground">{contact.name || 'Unnamed Contact'}</div>
+                                                        <div className="text-xs text-foreground-muted mb-2">{contact.role}</div>
+                                                        <div className="space-y-1">
+                                                            {contact.email && (
+                                                                <div className="flex items-center gap-2 text-sm text-foreground-secondary">
+                                                                    <Mail className="w-3 h-3" /> {contact.email}
+                                                                </div>
+                                                            )}
+                                                            {contact.phone && (
+                                                                <div className="flex items-center gap-2 text-sm text-foreground-secondary">
+                                                                    <Phone className="w-3 h-3" /> {contact.phone}
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                </div>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
                                 ))}
-                                {(!enrichmentData.contacts || enrichmentData.contacts.length === 0) && (
-                                    <button className="w-full py-8 border-2 border-dashed border-border rounded-xl text-foreground-muted hover:text-foreground hover:border-accent/50 hover:bg-accent/5 transition-all text-sm flex flex-col items-center gap-2">
-                                        <User className="w-6 h-6" />
-                                        Add Primary Contact
+
+                                {isEditing && (
+                                    <button
+                                        onClick={handleAddContact}
+                                        className="w-full py-3 border-2 border-dashed border-border rounded-xl text-accent hover:bg-accent/5 transition-all text-sm font-medium flex items-center justify-center gap-2"
+                                    >
+                                        <User className="w-4 h-4" />
+                                        Add New Contact
                                     </button>
+                                )}
+
+                                {(!enrichmentData.contacts || enrichmentData.contacts.length === 0) && !isEditing && (
+                                    <div className="text-center py-6 text-foreground-muted border-2 border-dashed border-border rounded-xl">
+                                        No contacts found
+                                    </div>
                                 )}
                             </div>
                         </div>
                     )}
-
                 </div>
             </div>
+
         </>
     )
 }
