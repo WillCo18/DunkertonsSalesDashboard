@@ -104,7 +104,7 @@ export default function AccountsPage() {
                                 ) : filteredCustomers.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className="p-12 text-center text-foreground-muted">
-                                            No customers found matching "{searchTerm}"
+                                            No customers found matching &quot;{searchTerm}&quot;
                                         </td>
                                     </tr>
                                 ) : (

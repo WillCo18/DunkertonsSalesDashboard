@@ -195,7 +195,7 @@ export function EnhancedGapAnalysis({
                         </div>
                         <h4 className="text-lg font-semibold text-foreground mb-2">Select a Brand Family</h4>
                         <p className="text-sm text-foreground-muted max-w-md">
-                            Choose a brand family above to see which customers are stocking it and which aren't
+                            Choose a brand family above to see which customers are stocking it and which aren&apos;t
                         </p>
                     </div>
                 ) : isLoading ? (

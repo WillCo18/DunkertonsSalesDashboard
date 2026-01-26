@@ -197,7 +197,7 @@ export function CustomerDetailsDrawer({
 
                                         {enrichmentData.instagram_bio && (
                                             <p className="text-sm text-foreground-secondary italic border-l-2 border-accent/20 pl-3">
-                                                "{enrichmentData.instagram_bio}"
+                                                &quot;{enrichmentData.instagram_bio}&quot;
                                             </p>
                                         )}
 

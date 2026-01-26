@@ -232,7 +232,7 @@ export function CrossProductGapAnalysis({
                         </div>
                         <h4 className="text-lg font-semibold text-foreground mb-2">Set Both Conditions</h4>
                         <p className="text-sm text-foreground-muted max-w-md">
-                            Select what customers STOCK and what they're MISSING to find cross-selling opportunities
+                            Select what customers STOCK and what they&apos;re MISSING to find cross-selling opportunities
                         </p>
                     </div>
                 ) : isLoading ? (

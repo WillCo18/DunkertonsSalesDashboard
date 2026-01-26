@@ -131,7 +131,7 @@ export function ChatWidget() {
                         {messages.length === 0 && (
                             <div className="flex flex-col items-center justify-center h-full text-center p-6 text-foreground-muted opacity-60">
                                 <Sparkles className="w-12 h-12 mb-4 text-accent/50" />
-                                <p className="text-sm">I'm Agent D, your sales intelligence unit.</p>
+                                <p className="text-sm">I&apos;m Agent D, your sales intelligence unit.</p>
                                 <p className="text-xs mt-2">Ask me about sales trends, customer gaps, or drafting emails.</p>
                             </div>
                         )}
