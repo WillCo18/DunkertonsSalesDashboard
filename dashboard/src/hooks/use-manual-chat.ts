@@ -7,7 +7,7 @@ export interface Message {
     createdAt?: Date
 }
 
-export function useManualChat(apiEndpoint: string = '/api/chat') {
+export function useManualChat(apiEndpoint: string = '/dunkertons/api/chat') {
     const [messages, setMessages] = useState<Message[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<Error | null>(null)
