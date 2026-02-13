@@ -30,8 +30,11 @@ export async function POST(req: Request) {
 
     3. IF asking about a BRAND or PRODUCT (e.g. "Black Fox sales", "Dunkertons performance"):
        -> Call 'get_monthly_kpis' with 'brandFamily' set to the brand name.
-    
-    4. IF asking about GAP ANALYSIS (e.g. "Who stocks X but not Y"):
+
+    4. IF asking WHO STOCKS or WHO BUYS a product (e.g. "who stocks Black Fox bottles?", "who buys Craft kegs?", "who doesn't stock Dunkertons?"):
+       -> Call 'find_product_stockists' with showStocked=true (for who stocks) or showStocked=false (for who doesn't).
+
+    5. IF asking about GAP ANALYSIS with TWO products (e.g. "Who stocks X but not Y"):
        -> Call 'check_product_gaps'.
 
     TONE & STYLE:

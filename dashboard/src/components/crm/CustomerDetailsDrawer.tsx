@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { X, User, Phone, Mail, Instagram, Edit2, Save, FileText, History, Package, Search, Loader2, Sparkles } from 'lucide-react'
+import { X, User, Phone, Mail, Instagram, Edit2, Save, FileText, History, Package, Search, Loader2, Sparkles, MessageSquare } from 'lucide-react'
 import { Customer, Shipment } from '@/types'
 import { formatNumber } from '@/lib/utils'
 import { StockingMatrix } from './StockingMatrix'
+import { CustomerNotes } from './CustomerNotes'
 import { getCustomerShipments } from '@/lib/queries'
 import useSWR from 'swr'
 import { enrichCustomerAction } from '@/app/actions/enrich-customer'
@@ -26,7 +27,7 @@ export function CustomerDetailsDrawer({
     customer,
     onSave
 }: CustomerDetailsDrawerProps) {
-    const [activeTab, setActiveTab] = useState<'overview' | 'matrix' | 'details' | 'history'>('overview')
+    const [activeTab, setActiveTab] = useState<'overview' | 'matrix' | 'details' | 'history' | 'notes'>('overview')
     const [enrichmentData, setEnrichmentData] = useState<any>({
         contacts: [],
         socials: {},
@@ -205,6 +206,14 @@ export function CustomerDetailsDrawer({
                             }`}
                     >
                         Order History
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('notes')}
+                        className={`py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'notes' ? 'border-accent text-accent' : 'border-transparent text-foreground-muted hover:text-foreground'
+                            }`}
+                    >
+                        <MessageSquare className="w-4 h-4 inline mr-1.5" />
+                        Notes
                     </button>
                     <button
                         onClick={() => setActiveTab('details')}
@@ -440,7 +449,7 @@ export function CustomerDetailsDrawer({
                                                 />
                                             ) : (
                                                 enrichmentData.website ? (
-                                                    <a href={enrichmentData.website} target="_blank" className="hover:underline truncate max-w-[300px]">{enrichmentData.website}</a>
+                                                    <a href={enrichmentData.website.startsWith('http') ? enrichmentData.website : `https://${enrichmentData.website}`} target="_blank" rel="noopener noreferrer" className="hover:underline truncate max-w-[300px]">{enrichmentData.website}</a>
                                                 ) : <span className="text-foreground-muted text-xs">No Website</span>
                                             )}
                                         </div>
@@ -583,6 +592,18 @@ export function CustomerDetailsDrawer({
                                 )}
                             </div>
                         </div>
+                    )}
+
+                    {/* NOTES TAB */}
+                    {activeTab === 'notes' && (
+                        <CustomerNotes
+                            accountId={customer.del_account}
+                            notes={enrichmentData.notes || []}
+                            onUpdate={() => {
+                                // Refresh the customer data
+                                router.refresh()
+                            }}
+                        />
                     )}
                 </div>
             </div>

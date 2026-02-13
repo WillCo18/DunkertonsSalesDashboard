@@ -1,103 +1,103 @@
 # Project Status
 
-**Last updated:** 2025-01-20 (Session handover)
+**Last updated:** 2026-01-27
 
 ## Purpose
 
-Build a volume-led sales analytics dashboard for Dunkerton Cider that:
-- Imports Inn Express distribution data (Excel)
-- Maps distributor SKUs to internal products
-- Tracks customer behavior (new, active, at-risk)
-- Provides product performance insights
-- Enables CSV exports for reporting
+Volume-led sales analytics dashboard + soft CRM for Dunkerton Cider using Inn Express distribution data. Imports Excel sales reports, maps products to internal SKUs, and provides analytics on customer behavior, product performance, and sales trends.
 
 ---
 
 ## PHASES Progress
 
-### Phase 1: Database Foundation
+### Phase 1: Database Foundation -- COMPLETE
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Core tables (6) | ✅ Written | `database/migrations/001_create_core_tables.sql` |
-| Analytics views (11) | ✅ Written | `database/migrations/002_create_views.sql` |
-| Seed data (26 products, 10 mappings) | ✅ Written | `database/migrations/003_seed_products.sql` |
-| **Execute migrations on Supabase** | 🚧 BLOCKED | Need service_role key for MCP |
+| Core tables (6) | ✅ Done | fact_shipments, dim_customer, dim_product_internal, etc. |
+| Analytics views (11) | ✅ Done | v_top_customers, v_at_risk_customers, v_brand_family_trend, etc. |
+| Seed data | ✅ Done | 26 products, 10+ SKU mappings |
 
-### Phase 2: Python Import Pipeline
+### Phase 2: Python Import Pipeline -- COMPLETE
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Config & DB helpers | ✅ Done | `tools/config.py`, `tools/db.py` |
-| Detection logic | ✅ Done | `tools/detection.py` |
 | Import script | ✅ Done | `tools/import_inn_express.py` |
-| Virtual environment | ✅ Done | `.venv/` with dependencies |
-| **Test with real data** | 🚧 Blocked | Waiting on database setup |
+| Detection logic | ✅ Done | Brand family + pack format detection |
+| Idempotent imports | ✅ Done | MD5 line_key deduplication |
+| Data imported | ✅ Done | July 2025 - January 2026 |
 
-### Phase 3: Next.js Dashboard
+### Phase 3: Next.js Dashboard -- COMPLETE
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Project scaffold | ✅ Done | Next.js 14, TypeScript, Tailwind |
-| Night Ops theme | ✅ Done | `tailwind.config.ts`, `globals.css` |
-| Layout components | ✅ Done | AppShell, Header, Sidebar |
-| KPI components | ✅ Done | KPICard, KPIDeck |
-| Chart components | ✅ Done | VolumeTrendChart, BrandDistChart |
-| Table components | ✅ Done | TopCustomersTable, TopProductsTable |
-| Insight components | ✅ Done | NewCustomers, AtRisk, GapAnalysis |
-| Export component | ✅ Done | ExportPanel |
-| Supabase client | ✅ Done | `lib/supabase.ts`, `lib/queries.ts` |
-| **Build & test** | 🚧 Blocked | Waiting on database setup |
+| Night Ops theme | ✅ Done | Dark theme with #44D1B8 accent |
+| KPI tiles | ✅ Done | Volume, active customers, new, at-risk, top brand, top SKU |
+| Charts | ✅ Done | Volume trend (Recharts), brand distribution |
+| Tables | ✅ Done | Top customers, top products |
+| Insights | ✅ Done | New customers, returning, at-risk, lapsed, gap analysis |
+| Enhanced gap analysis | ✅ Done | "Who stocks X but not Y" with brand/format filters |
+| Cross-product gap analysis | ✅ Done | Compare any two brand/format combos |
+| Multi-month filtering | ✅ Done | Select multiple months, brand, format, salesperson |
+| Raw data view | ✅ Done | Toggle to see granular shipment records |
+| Customer list | ✅ Done | Full list at bottom, sorted by last order date, searchable |
+| Export panel | ✅ Done | CSV export for various datasets |
 
-### Phase 4: Deployment
+### Phase 4: Soft CRM -- COMPLETE
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Vercel deployment | ⬜ Not started | After dashboard tested |
-| Environment config | ⬜ Not started | |
+| Customer details drawer | ✅ Done | Slides in from right, 700px |
+| Overview tab | ✅ Done | Social snapshot, address, coordinates |
+| Stocking matrix | ✅ Done | Visual grid of what customer stocks |
+| Order history tab | ✅ Done | Filterable by brand, shows all shipments |
+| Contacts & info tab | ✅ Done | Phone, website, email, Instagram, contacts |
+| Auto-enrich (Google Maps) | ✅ Done | Apify crawler for phone, website, socials |
+| Auto-enrich (Instagram) | ✅ Done | Followers, bio, latest posts via Apify |
+| Website scrape fallback | ✅ Done | Scrapes venue website for Instagram if not on Google Maps |
+| Manual edit mode | ✅ Done | Edit contacts, phone, email, socials inline |
+| Save to database | ✅ Done | Enrichment data persisted to dim_customer.enrichment |
+
+### Phase 5: AI Agent (Agent D) -- COMPLETE
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Chat widget | ✅ Done | Floating bottom-right, Night Ops themed |
+| GPT-4o integration | ✅ Done | Via Vercel AI SDK (streamText) |
+| Voice input | ✅ Done | Transcription via /api/transcribe |
+| Tool: search_customers | ✅ Done | Find specific pubs/venues |
+| Tool: get_customer_details | ✅ Done | Full customer profile |
+| Tool: get_customer_history | ✅ Done | Past orders |
+| Tool: find_product_stockists | ✅ Done | Who stocks / doesn't stock a product |
+| Tool: check_product_gaps | ✅ Done | Who stocks X but not Y |
+| Tool: get_monthly_kpis | ✅ Done | Company/brand level metrics |
+| Tool: find_venue_contact | ✅ Done | Google Maps enrichment |
+| Tool: enrich_instagram | ✅ Done | Instagram deep dive |
+
+### Phase 6: Deployment -- COMPLETE
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Vercel deployment | ✅ Done | Auto-deploys from GitHub master |
+| GitHub repo | ✅ Done | WillCo18/DunkertonsSalesDashboard |
+| Production URL | ✅ Done | https://dunkertons-sales-dashboard.vercel.app/ |
+| Environment variables | ✅ Done | Supabase + OpenAI + Apify keys in Vercel |
 
 ---
 
-## What Changed Since Last Update
+## What Changed This Session (2026-01-27)
 
-- Created project structure from scratch
-- Built all database migrations (tables, views, seed data)
-- Built complete Python import pipeline
-- Built complete Next.js dashboard with Night Ops theme
-- Created `.env` files with Supabase credentials
-- Attempted database migration - **blocked on MCP/credentials**
-- User has anon key but needs service_role key for full access
-- Cleaned up duplicate/junk config files
-
----
-
-## Current Blocker
-
-**MCP not connected** - Supabase MCP needs the `service_role` key (not `anon` key).
-
-User keeps providing anon key. The service_role key:
-- Is in Supabase Dashboard → Settings → API
-- Has a "Reveal" button next to it
-- Contains `"role":"service_role"` in the JWT (not `"role":"anon"`)
-
-Without this, cannot:
-- Run migrations via MCP
-- Create tables programmatically
-- Full database access
-
-**Workaround:** User can manually run SQL in Supabase SQL Editor:
-https://supabase.com/dashboard/project/qmqaegwhxtgosxibzdnx/sql/new
+- Fixed Vercel build: excluded `scripts/` from tsconfig.json, added dotenv devDep
+- Added full customer list at bottom of dashboard (sorted by last order, searchable, filter-aware)
+- Fixed pack format filtering in customer list query (product_code vs internal_product_code)
+- Added `find_product_stockists` tool to Agent D (was incorrectly using gap analysis for "who stocks X" queries)
+- Fixed website links missing `https://` prefix in CRM drawer
+- Added website scrape fallback for Instagram handle discovery during enrichment
+- Improved social_profiles parsing to handle both array and object formats from Google Maps
+- Temporarily added then reverted basePath config (domain setup deferred)
 
 ---
 
-## Next 10 Actions
+## Pending / Future Work
 
-1. [ ] Get service_role key from Supabase (or run SQL manually)
-2. [ ] Run `database/migrations/RUN_ALL_MIGRATIONS.sql` on Supabase
-3. [ ] Verify tables created: `SELECT COUNT(*) FROM dim_product_internal;`
-4. [ ] Test Python import: `python tools/import_inn_express.py --file data/raw/inn_express_2025_12.xlsx --month 2025-12-01`
-5. [ ] Check mapping coverage (target ≥95%)
-6. [ ] Install dashboard dependencies: `cd dashboard && npm install`
-7. [ ] Run dashboard dev server: `npm run dev`
-8. [ ] Verify KPIs display correctly
-9. [ ] Test CSV export functionality
-10. [ ] Deploy to Vercel
+- [ ] Custom domain setup: `sales.imagine-if.ai` or `imagine-if.ai/salesdunkertons` (DNS on Cloudflare, domain on Namecheap)
+- [ ] Accounts page (`/accounts`) - exists but needs review
+- [ ] Additional data imports (new months as they become available)
+- [ ] Playwright E2E tests (framework installed, tests written)
 
 ---
 
@@ -105,21 +105,13 @@ https://supabase.com/dashboard/project/qmqaegwhxtgosxibzdnx/sql/new
 
 | Resource | Link |
 |----------|------|
+| Production | https://dunkertons-sales-dashboard.vercel.app/ |
+| GitHub | https://github.com/WillCo18/DunkertonsSalesDashboard |
 | Supabase Project | https://supabase.com/dashboard/project/qmqaegwhxtgosxibzdnx |
-| Supabase SQL Editor | https://supabase.com/dashboard/project/qmqaegwhxtgosxibzdnx/sql/new |
-| Supabase API Keys | https://supabase.com/dashboard/project/qmqaegwhxtgosxibzdnx/settings/api |
-| Migration SQL | `database/migrations/RUN_ALL_MIGRATIONS.sql` |
-| Test data | `data/raw/inn_express_2025_12.xlsx` |
+| Vercel Project | Vercel Dashboard (dunkertons-sales-dashboard) |
 
 ---
 
-## Files to Provide (User)
+## Data Range
 
-| What | Status |
-|------|--------|
-| Products CSV | ✅ Provided (26 products) |
-| SKU Mappings CSV | ✅ Provided (10 mappings) |
-| Inn Express test file | ✅ Provided (December 2025) |
-| Supabase anon key | ✅ Provided |
-| Supabase service_role key | ❌ Not yet provided |
-| Database password | ✅ Provided |
+Database contains sales data from **July 2025 to January 2026** (7 months).

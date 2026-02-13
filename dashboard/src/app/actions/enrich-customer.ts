@@ -35,23 +35,66 @@ export async function enrichCustomerAction(customer: any) {
 
         // Add Contact Info if missing
         if (mapsData.phone && !enrichment.phone) enrichment.phone = mapsData.phone
-        if (mapsData.website && !enrichment.website) enrichment.website = mapsData.website
+        if (mapsData.website && !enrichment.website) {
+            // Ensure website has protocol prefix
+            const site = mapsData.website
+            enrichment.website = site.startsWith('http') ? site : `https://${site}`
+        }
 
-        // Add Social Links
+        // Add Social Links - handle both object and array formats from Google Maps
         if (mapsData.social_profiles) {
-            enrichment.socials = { ...enrichment.socials, ...mapsData.social_profiles }
+            console.log('[Action] Raw social_profiles:', JSON.stringify(mapsData.social_profiles))
+            if (Array.isArray(mapsData.social_profiles)) {
+                // Array format: [{ platform: "instagram", url: "..." }, ...]
+                for (const profile of mapsData.social_profiles) {
+                    const platform = (profile.platform || profile.type || '').toLowerCase()
+                    const url = profile.url || profile.link || ''
+                    if (platform && url) {
+                        enrichment.socials[platform] = url
+                    }
+                    // Also check URL for platform hints
+                    if (url.includes('instagram.com')) enrichment.socials.instagram = url
+                    if (url.includes('facebook.com')) enrichment.socials.facebook = url
+                }
+            } else if (typeof mapsData.social_profiles === 'object') {
+                enrichment.socials = { ...enrichment.socials, ...mapsData.social_profiles }
+            }
+        }
+
+        // Also check website URL for Instagram link as fallback
+        if (mapsData.website && mapsData.website.includes('instagram.com') && !enrichment.socials.instagram) {
+            enrichment.socials.instagram = mapsData.website
+        }
+
+        // 2b. Fallback: scrape website for Instagram link if not found via Google Maps
+        if (!enrichment.socials?.instagram && enrichment.website) {
+            try {
+                console.log('[Action] No Instagram from Google Maps, checking website:', enrichment.website)
+                const res = await fetch(enrichment.website, { signal: AbortSignal.timeout(5000) })
+                const html = await res.text()
+                const igMatch = html.match(/(?:https?:\/\/)?(?:www\.)?instagram\.com\/([a-zA-Z0-9._]+)/i)
+                if (igMatch && igMatch[1] && !['p', 'reel', 'explore', 'accounts'].includes(igMatch[1])) {
+                    enrichment.socials.instagram = `https://instagram.com/${igMatch[1]}`
+                    console.log('[Action] Found Instagram from website:', igMatch[1])
+                }
+            } catch (e) {
+                console.log('[Action] Website scrape failed (non-blocking):', (e as Error).message)
+            }
         }
 
         // 3. Instagram Enrichment (if handle found)
-        // Look for instagram in social_profiles or website
-        let instagramHandle = null
-        if (enrichment.socials?.instagram) instagramHandle = enrichment.socials.instagram
+        let instagramHandle = enrichment.socials?.instagram || enrichment.socials?.instagram_id || null
 
-        // If we found a handle, deep dive
+        console.log('[Action] Instagram handle found:', instagramHandle)
+
+        // If we found a handle/URL, deep dive
         if (instagramHandle) {
             // Extract handle from URL if needed
-            const handle = instagramHandle.split('.com/')[1]?.replace('/', '')
+            const handle = instagramHandle.includes('instagram.com')
+                ? instagramHandle.split('instagram.com/')[1]?.replace(/\/$/, '').split('?')[0]
+                : instagramHandle.replace('@', '')
             if (handle) {
+                console.log('[Action] Enriching Instagram handle:', handle)
                 const instaData = await enrichInstagram(handle)
                 if (instaData) {
                     enrichment.instagram_cnt = instaData.followersCount

@@ -1,6 +1,18 @@
 # System Learning Log
 Document errors, root causes, and fixes to prevent recurrence.
 
+## 2026-02-10: Milestone 8 Complete - Customer Notes Feature
+- **Achievement**: Successfully implemented CRM note-taking feature with full CRUD operations.
+- **Implementation**: Server actions (`customer-notes.ts`), UI components (`CustomerNotes.tsx`, `NoteForm.tsx`), integrated into `CustomerDetailsDrawer.tsx`.
+- **Storage Strategy**: Used existing `enrichment` JSONB column to store notes array, avoiding database migration.
+- **Browser Testing**: All green gates passed - add/edit/delete notes, persistence, empty state, type badges, relative timestamps.
+- **Learning**: JSONB arrays in Supabase are excellent for MVP features. Simple CRUD operations with `revalidatePath` provide instant UI updates without complex state management.
+
+## 2026-02-10: Milestone 10 Planned - Customer Actions & Follow-ups
+- **Next Feature**: Action items tracking (callbacks, samples, tastings, meetings).
+- **Design Decision**: Will include due dates, status tracking, and optional dashboard widget for "My Actions" view.
+- **Rationale**: Notes record what happened, Actions track what needs to happen - complementary CRM features.
+
 ## 2026-01-26: Apify Actor Input Error
 - **Error**: `INVALID INPUT ... searchStringsArray` from `compass/crawler-google-places`.
 - **Attempted Fix**: Switched to `apify/google-maps-scraper`.

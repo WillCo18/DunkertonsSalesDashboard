@@ -5,6 +5,7 @@ import {
     getCustomerDetails,
     getCustomerShipments,
     getCrossProductGapAnalysis,
+    getEnhancedGapAnalysis,
     getMonthlySummary
 } from '@/lib/queries'
 
@@ -54,8 +55,32 @@ export const tools = {
         }
     }),
 
+    find_product_stockists: tool({
+        description: 'Find customers who DO or DO NOT stock a specific brand/product. Use when user asks "who stocks X?" or "who buys X?" or "who doesn\'t stock X?".',
+        parameters: z.object({
+            brandFamily: z.string().describe('Brand name (e.g. "Black Fox", "Dunkertons", "Craft")'),
+            packFormat: z.string().optional().describe('Format filter e.g. "Bottle", "Keg 30L", "Keg 50L", "Small Pack"'),
+            showStocked: z.boolean().describe('true = customers who DO stock it, false = customers who DO NOT stock it'),
+        }),
+        execute: async ({ brandFamily, packFormat, showStocked }: { brandFamily: string, packFormat?: string, showStocked: boolean }) => {
+            const results = await getEnhancedGapAnalysis({
+                brandFamily,
+                packFormat,
+                showStocked,
+            })
+            return {
+                count: results.length,
+                customers: results.slice(0, 20).map(c => ({
+                    name: c.customer_name,
+                    city: c.delivery_city,
+                    units: c.total_units,
+                }))
+            }
+        }
+    }),
+
     check_product_gaps: tool({
-        description: 'Find customers who stock one product (Base) but NOT another (Target). "Upsell Opportunity".',
+        description: 'Find customers who stock one brand (Base) but NOT another (Target). "Upsell Opportunity". Use when user asks "who stocks X but not Y?".',
         parameters: z.object({
             stocksBrand: z.string().describe('Brand they ALREADY buy (e.g. "Black Fox")'),
             missingBrand: z.string().describe('Brand they SHOULD buy (e.g. "Craft")'),
@@ -70,7 +95,7 @@ export const tools = {
             })
             return {
                 count: results.length,
-                opportunities: results.slice(0, 5) // Return top 5 opportunities
+                opportunities: results.slice(0, 5)
             }
         }
     }),
