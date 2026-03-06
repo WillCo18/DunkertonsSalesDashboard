@@ -15,7 +15,7 @@ export function ChatWidget() {
 
     // Use standard SDK hook
     const { messages, input, setInput, append, isLoading, error } = useChat({
-        api: '/dunkertons/api/chat',
+        api: '/api/chat',
         initialInput: '', // Ensure input is not undefined
         onError: (err) => console.error('Chat Error:', err)
     })
@@ -69,7 +69,7 @@ export function ChatWidget() {
             const formData = new FormData()
             formData.append('file', blob, 'audio.webm')
 
-            const res = await fetch('/dunkertons/api/transcribe', {
+            const res = await fetch('/api/transcribe', {
                 method: 'POST',
                 body: formData
             })

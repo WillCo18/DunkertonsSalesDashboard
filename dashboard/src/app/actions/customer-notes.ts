@@ -122,7 +122,7 @@ export async function addCustomerNote(input: AddNoteInput) {
 
         if (updateError) throw updateError
 
-        revalidatePath('/dunkertons')
+        revalidatePath('/')
         return { success: true, data: newNote }
 
     } catch (error: any) {
@@ -181,7 +181,7 @@ export async function updateCustomerNote(input: UpdateNoteInput) {
 
         if (updateError) throw updateError
 
-        revalidatePath('/dunkertons')
+        revalidatePath('/')
         return { success: true, data: notes[noteIndex] }
 
     } catch (error: any) {
@@ -233,7 +233,7 @@ export async function deleteCustomerNote(accountId: string, noteId: string) {
 
         if (updateError) throw updateError
 
-        revalidatePath('/dunkertons')
+        revalidatePath('/')
         return { success: true, message: 'Note deleted' }
 
     } catch (error: any) {
